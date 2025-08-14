@@ -1,5 +1,7 @@
 # Expo Amap
 
+> ⚠️ 开发中，目前仅支持 iOS
+
 `expo-amap` 让你在 Expo app 中使用高德地图 iOS 与 Android SDK，集成了 `AMapFoundation`, `AMap3DMap`, `AMapSearch` 与 `AMapLocation`。
 
 # 安装
