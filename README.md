@@ -38,12 +38,7 @@ npx expo install expo-amap
 
 ```tsx
 import { useRef } from 'react'
-import ExpoAmapModule, {
-  MapView,
-  Marker,
-  Polyline,
-  type MapViewRef
-} from 'expo-amap'
+import ExpoAmapModule, { MapView, type MapViewRef } from 'expo-amap'
 
 export default function App() {
   const mapViewRef = useRef<MapViewRef>(null)
