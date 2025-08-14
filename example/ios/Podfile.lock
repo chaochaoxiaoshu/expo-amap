@@ -1,4 +1,11 @@
 PODS:
+  - AMap3DMap (10.0.1000):
+    - AMapFoundation (>= 1.8.0)
+  - AMapFoundation (1.8.2)
+  - AMapLocation (2.10.0):
+    - AMapFoundation (>= 1.8.0)
+  - AMapSearch (9.7.4):
+    - AMapFoundation (>= 1.8.0)
   - boost (1.84.0)
   - DoubleConversion (1.1.6)
   - EXConstants (17.1.7):
@@ -31,6 +38,10 @@ PODS:
     - ReactCommon/turbomodule/core
     - Yoga
   - ExpoAmap (0.1.0):
+    - AMap3DMap (~> 10.0.600)
+    - AMapFoundation (~> 1.8.2)
+    - AMapLocation (~> 2.10.0)
+    - AMapSearch (~> 9.7.4)
     - ExpoModulesCore
   - ExpoAsset (11.1.7):
     - ExpoModulesCore
@@ -1805,6 +1816,10 @@ DEPENDENCIES:
 
 SPEC REPOS:
   trunk:
+    - AMap3DMap
+    - AMapFoundation
+    - AMapLocation
+    - AMapSearch
     - SocketRocket
 
 EXTERNAL SOURCES:
@@ -1967,11 +1982,15 @@ EXTERNAL SOURCES:
     :path: "../node_modules/react-native/ReactCommon/yoga"
 
 SPEC CHECKSUMS:
+  AMap3DMap: 2896b8d63034aaf79720a402573362ca2fef0dec
+  AMapFoundation: 9885c48fc3a78fdfb84a0299a2293e56ea3c9fec
+  AMapLocation: 5248aec2455ebb5d104b367813c946430a2ee033
+  AMapSearch: a30e89212f55a867ac951ce71f800313cd54ad0a
   boost: 7e761d76ca2ce687f7cc98e698152abd03a18f90
   DoubleConversion: cb417026b2400c8f53ae97020b2be961b59470cb
   EXConstants: 98bcf0f22b820f9b28f9fee55ff2daededadd2f8
   Expo: a40d525c930dd1c8a158e082756ee071955baccb
-  ExpoAmap: 61a2caed94780103644432300d3f4471e537ff97
+  ExpoAmap: 1b2c73046c749b188a20999dce6cf9ee9881f55d
   ExpoAsset: ef06e880126c375f580d4923fdd1cdf4ee6ee7d6
   ExpoFileSystem: 7f92f7be2f5c5ed40a7c9efc8fa30821181d9d63
   ExpoFont: cf508bc2e6b70871e05386d71cab927c8524cc8e
