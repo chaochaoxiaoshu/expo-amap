@@ -1,48 +1,182 @@
+import AMapFoundationKit
+import AMapLocationKit
+import AMapSearchKit
 import ExpoModulesCore
+import MAMapKit
 
 public class ExpoAmapModule: Module {
-  // Each module class must implement the definition function. The definition consists of components
-  // that describes the module's functionality and behavior.
-  // See https://docs.expo.dev/modules/module-api for more details about available components.
+  private var locationManager: AMapLocationManager?
+  private var locationDelegate: LocationManagerDelegate?
+
+  private var search: AMapSearchAPI?
+  private var searchManager: SearchManager?
+
   public func definition() -> ModuleDefinition {
-    // Sets the name of the module that JavaScript code will use to refer to the module. Takes a string as an argument.
-    // Can be inferred from module's class name, but it's recommended to set it explicitly for clarity.
-    // The module will be accessible from `requireNativeModule('ExpoAmap')` in JavaScript.
     Name("ExpoAmap")
 
-    // Sets constant properties on the module. Can take a dictionary or a closure that returns a dictionary.
-    Constants([
-      "PI": Double.pi
-    ])
+    OnCreate {
+      let apiKey = Bundle.main.object(forInfoDictionaryKey: "AMAP_API_KEY") as? String
+      AMapServices.shared().apiKey = apiKey
+      AMapServices.shared().enableHTTPS = true
 
-    // Defines event names that the module can send to JavaScript.
-    Events("onChange")
+      MAMapView.updatePrivacyAgree(AMapPrivacyAgreeStatus.didAgree)
+      MAMapView.updatePrivacyShow(
+        AMapPrivacyShowStatus.didShow, privacyInfo: AMapPrivacyInfoStatus.didContain)
 
-    // Defines a JavaScript synchronous function that runs the native code on the JavaScript thread.
-    Function("hello") {
-      return "Hello world! 👋"
+      locationManager = AMapLocationManager()
+      locationDelegate = LocationManagerDelegate()
+      locationManager?.delegate = locationDelegate
+      locationManager?.desiredAccuracy = kCLLocationAccuracyHundredMeters
+      locationManager?.locationTimeout = 2
+      locationManager?.reGeocodeTimeout = 2
+
+      search = AMapSearchAPI()
+      searchManager = SearchManager(search: search)
+      search?.delegate = searchManager
     }
 
-    // Defines a JavaScript function that always returns a Promise and whose native code
-    // is by default dispatched on the different thread than the JavaScript runtime runs on.
-    AsyncFunction("setValueAsync") { (value: String) in
-      // Send an event to JavaScript.
-      self.sendEvent("onChange", [
-        "value": value
-      ])
-    }
-
-    // Enables the module to be used as a native view. Definition components that are accepted as part of the
-    // view definition: Prop, Events.
-    View(ExpoAmapView.self) {
-      // Defines a setter for the `url` prop.
-      Prop("url") { (view: ExpoAmapView, url: URL) in
-        if view.webView.url != url {
-          view.webView.load(URLRequest(url: url))
+    AsyncFunction("requestLocation") { (promise: Promise) -> Void in
+      guard let locationManager = locationManager else {
+        promise.reject("E_LOCATION_MANAGER_NOT_FOUND", "定位管理器未初始化")
+        return
+      }
+      locationManager.requestLocation(withReGeocode: true) { location, regeocode, error in
+        if let error = error {
+          let errorMessage = error.localizedDescription
+          promise.reject("E_LOCATION_FAILED", "定位失败: \(errorMessage)")
+          return
         }
+        guard let location = location, let regeocode = regeocode else {
+          promise.reject("E_LOCATION_FAILED", "定位失败")
+          return
+        }
+
+        promise.resolve([
+          "latitude": location.coordinate.latitude,
+          "longitude": location.coordinate.longitude,
+          "regeocode": [
+            "formattedAddress": regeocode.formattedAddress,
+            "country": regeocode.country,
+            "province": regeocode.province,
+            "city": regeocode.city,
+            "district": regeocode.district,
+            "citycode": regeocode.citycode,
+            "adcode": regeocode.adcode,
+            "street": regeocode.street,
+            "number": regeocode.number,
+            "poiName": regeocode.poiName,
+            "aoiName": regeocode.aoiName,
+          ],
+        ])
+      }
+    }
+
+    AsyncFunction("searchInputTips") {
+      (options: SearchInputTipsOptions, promise: Promise) -> Void in
+      searchManager?.searchInputTips(options, promise)
+    }
+
+    AsyncFunction("searchGeocode") { (options: SearchGeocodeOptions, promise: Promise) -> Void in
+      searchManager?.searchGeocode(options, promise)
+    }
+
+    AsyncFunction("searchReGeocode") {
+      (options: SearchReGeocodeOptions, promise: Promise) -> Void in
+      searchManager?.searchReGeocode(options, promise)
+    }
+
+    AsyncFunction("searchDrivingRoute") {
+      (options: SearchDrivingRouteOptions, promise: Promise) -> Void in
+      searchManager?.searchDrivingRoute(options, promise)
+    }
+
+    AsyncFunction("searchWalkingRoute") {
+      (options: SearchWalkingRouteOptions, promise: Promise) -> Void in
+      searchManager?.searchWalkingRoute(options, promise)
+    }
+
+    AsyncFunction("searchRidingRoute") {
+      (options: SearchRidingRouteOptions, promise: Promise) -> Void in
+      searchManager?.searchRidingRoute(options, promise)
+    }
+
+    AsyncFunction("searchTransitRoute") {
+      (options: SearchTransitRouteOptions, promise: Promise) -> Void in
+      searchManager?.searchTransitRoute(options, promise)
+    }
+
+    View(MapView.self) {
+      Events("onLoad", "onZoom", "onRegionChanged", "onTapMarker")
+
+      Prop("region") { (view, region: Region) in
+        view.setRegion(region, animated: true)
       }
 
-      Events("onLoad")
+      Prop("initialRegion") { (view, region: Region) in
+        guard !view.regionSetted else { return }
+
+        view.setRegion(region, animated: false)
+        view.regionSetted = true
+      }
+
+      Prop("limitedRegion") { (view, region: Region) in
+        view.mapView.limitRegion = MACoordinateRegion(
+          center: CLLocationCoordinate2D(
+            latitude: region.center.latitude, longitude: region.center.longitude),
+          span: MACoordinateSpan(
+            latitudeDelta: region.span.latitudeDelta, longitudeDelta: region.span.longitudeDelta))
+      }
+
+      Prop("mapType") { (view, mapType: Int) in
+        view.mapView.mapType = MAMapType(rawValue: mapType) ?? .standard
+      }
+
+      Prop("showCompass") { (view, showCompass: Bool) in
+        view.mapView.showsCompass = showCompass
+      }
+
+      Prop("showUserLocation") { (view, showUserLocation: Bool) in
+        view.mapView.showsUserLocation = showUserLocation
+      }
+
+      Prop("userTrackingMode") { (view, userTrackingMode: Int) in
+        view.setUserTrackingMode(userTrackingMode)
+      }
+
+      Prop("markers") { (view, markers: [Marker]) in
+        view.setMarkers(markers)
+      }
+
+      Prop("polylines") { (view, segments: [Polyline]) in
+        view.setPolylines(segments)
+      }
+
+      Prop("customStyle") { (view, customStyle: CustomStyle) in
+        view.setCustomStyle(customStyle)
+      }
+
+      Prop("language") { (view, language: String) in
+        view.setLanguage(language)
+      }
+
+      Prop("minZoomLevel") { (view, minZoomLevel: Double) in
+        view.mapView.minZoomLevel = minZoomLevel
+      }
+
+      Prop("maxZoomLevel") { (view, maxZoomLevel: Double) in
+        view.mapView.maxZoomLevel = maxZoomLevel
+      }
+
+      AsyncFunction("setCenter") {
+        (view: MapView, centerCoordinate: [String: Double], promise: Promise) in
+        view.setCenter(
+          latitude: centerCoordinate["latitude"], longitude: centerCoordinate["longitude"],
+          promise: promise)
+      }
+
+      AsyncFunction("setZoomLevel") { (view: MapView, zoomLevel: Int) in
+        view.mapView.setZoomLevel(CGFloat(zoomLevel), animated: true)
+      }
     }
   }
 }

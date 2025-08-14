@@ -16,10 +16,14 @@
     "open:android": "open -a \"Android Studio\" example/android"
   },
   "keywords": [
+    "amap",
+    "AMapFoundation",
+    "AMap3DMap",
+    "AMapSearch",
+    "AMapLocation",
+    "高德地图",
     "react-native",
-    "expo",
-    "expo-amap",
-    "ExpoAmap"
+    "expo"
   ],
   "repository": "https://github.com/chaochaoxiaoshu/expo-amap",
   "bugs": {
