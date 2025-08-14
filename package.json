@@ -1,0 +1,43 @@
+{
+  "name": "expo-amap",
+  "version": "0.1.0",
+  "description": "在 Expo app 中使用高德地图原生SDK",
+  "main": "build/index.js",
+  "types": "build/index.d.ts",
+  "scripts": {
+    "build": "expo-module build",
+    "clean": "expo-module clean",
+    "lint": "expo-module lint",
+    "test": "expo-module test",
+    "prepare": "expo-module prepare",
+    "prepublishOnly": "expo-module prepublishOnly",
+    "expo-module": "expo-module",
+    "open:ios": "xed example/ios",
+    "open:android": "open -a \"Android Studio\" example/android"
+  },
+  "keywords": [
+    "react-native",
+    "expo",
+    "expo-amap",
+    "ExpoAmap"
+  ],
+  "repository": "https://github.com/chaochaoxiaoshu/expo-amap",
+  "bugs": {
+    "url": "https://github.com/chaochaoxiaoshu/expo-amap/issues"
+  },
+  "author": "zhang.xin1@outlook.com <zhang.xin1@outlook.com> (https://github.com/chaochaoxiaoshu)",
+  "license": "MIT",
+  "homepage": "https://github.com/chaochaoxiaoshu/expo-amap#readme",
+  "dependencies": {},
+  "devDependencies": {
+    "@types/react": "~19.0.0",
+    "expo-module-scripts": "^4.1.10",
+    "expo": "~53.0.0",
+    "react-native": "0.79.1"
+  },
+  "peerDependencies": {
+    "expo": "*",
+    "react": "*",
+    "react-native": "*"
+  }
+}

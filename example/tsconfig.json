@@ -1,0 +1,10 @@
+{
+  "extends": "expo/tsconfig.base",
+  "compilerOptions": {
+    "strict": true,
+    "paths": {
+      "expo-amap": ["../src/index"],
+      "expo-amap/*": ["../src/*"]
+    }
+  }
+}
