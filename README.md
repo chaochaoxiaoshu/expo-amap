@@ -4,6 +4,12 @@
 
 `expo-amap` 让你在 Expo app 中使用高德地图 iOS 与 Android SDK，集成了 `AMapFoundation`, `AMap3DMap`, `AMapSearch` 与 `AMapLocation`。
 
+# 特性
+
+- ⚛️ 声明式 API
+- 🔵 一流的 TypeScript 支持
+- 📦 基于 Expo Modules API，支持新架构
+
 # 安装
 
 ```bash

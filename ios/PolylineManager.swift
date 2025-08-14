@@ -30,8 +30,6 @@ class PolylineManager {
             styles[polylineId] = item.style
             mapView.add(polyline)
         }
-        
-        print("设置好的 polylines 条数：\(mapView.overlays.count)")
     }
 
     func styleForPolyline(_ polyline: MAPolyline) -> PolylineStyle? {

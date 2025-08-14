@@ -26,7 +26,7 @@ class MarkerManager {
         var annotationsToAdd: [SSAnnotation] = []
         var annotationsToRemove: [SSAnnotation] = []
 
-        // 1️⃣ 对比新增/更新
+        // 对比新增/更新
         for marker in newMarkers {
             if let oldMarker = oldMarkersMap[marker.id],
                let oldAnnotation = oldAnnotationsMap[marker.id] {
@@ -110,7 +110,7 @@ class MarkerManager {
             }
         }
 
-        // 2️⃣ 删除旧标注
+        // 删除旧标注
         let newIds = Set(newMarkers.map { $0.id })
         annotationsToRemove = oldAnnotations.filter { !newIds.contains($0.id) }
 
