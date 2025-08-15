@@ -56,6 +56,12 @@ struct MarkerImage: Record {
     @Field var size: Size
 }
 
+struct MarkerExtra: Record {
+    @Field var province: String?
+    @Field var city: String?
+    @Field var district: String?
+}
+
 struct Marker: Record {
     @Field var id: String
     @Field var coordinate: Coordinate
@@ -73,10 +79,21 @@ struct Marker: Record {
     @Field var canAdjustPosition: Bool?
     @Field var textStyle: TextStyle?
     @Field var pinColor: Int?
+    @Field var extra: MarkerExtra?
 }
 
 struct CustomStyle: Record {
     @Field var enabled: Bool
     @Field var styleData: [UInt8]?
     @Field var styleExtraData: [UInt8]?
+}
+
+struct RegionClusteringRule: Record {
+    @Field var by: String
+    @Field var thresholdZoomLevel: Double
+}
+
+struct RegionClusteringOptions: Record {
+    @Field var enabled: Bool?
+    @Field var rules: [RegionClusteringRule]
 }

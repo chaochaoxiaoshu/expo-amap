@@ -25,7 +25,7 @@ class PolylineManager {
                 coordinates: &coordsArray, count: UInt(coordsArray.count))
             let polylineId = "polyline-\(index)"
             polyline.title = polylineId
-            
+
             self.polylines.append(polyline)
             styles[polylineId] = item.style
             mapView.add(polyline)

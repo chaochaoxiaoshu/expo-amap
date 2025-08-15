@@ -112,6 +112,13 @@ export default function App() {
       <MapView
         ref={mapViewRef}
         style={{ flex: 1 }}
+        region={{
+          center: { latitude: 31.230545, longitude: 121.473724 },
+          span: {
+            latitudeDelta: 0.1,
+            longitudeDelta: 0.1
+          }
+        }}
         mapType={0}
         showCompass={false}
         showUserLocation={true}
@@ -135,20 +142,30 @@ export default function App() {
           title='闪数科技'
           subtitle='闪数科技'
           canShowCallout
+          zIndex={3}
           image={{
             url: 'https://qiniu.zdjt.com/shop/2025-07-24/e84b870f7c916a381afe91c974243cb5.jpg',
             size: {
-              width: 100,
-              height: 30
+              width: 150,
+              height: 35
             }
           }}
           centerOffset={{
             x: 0,
             y: -15
           }}
+          calloutOffset={{
+            x: 0,
+            y: 0
+          }}
           textStyle={{
-            fontSize: 24,
+            fontSize: 32,
             color: '#FF0000'
+          }}
+          extra={{
+            province: '上海市',
+            city: '上海市',
+            district: '浦东新区'
           }}
         />
         <Marker
@@ -158,13 +175,20 @@ export default function App() {
           subtitle='闪数科技'
           canAdjustPosition
           canShowCallout
+          extra={{
+            province: '上海市',
+            city: '上海市',
+            district: '浦东新区'
+          }}
         />
         <Marker
           id='marker3'
+          zIndex={5}
           coordinate={{ latitude: 31.227265, longitude: 121.479399 }}
           title='飞书'
           subtitle='闪数科技'
           canShowCallout
+          canAdjustPosition
           image={{
             url: 'https://qiniu.zdjt.com/shop/2025-07-24/e84b870f7c916a381afe91c974243cb5.jpg',
             size: {
@@ -180,6 +204,11 @@ export default function App() {
             fontSize: 24,
             color: '#FF0000'
           }}
+          extra={{
+            province: '上海市',
+            city: '上海市',
+            district: '浦东新区'
+          }}
         />
         <Polyline
           coordinates={[
@@ -188,7 +217,7 @@ export default function App() {
           ]}
           style={{
             strokeColor: '#FF0000',
-            lineWidth: 4,
+            lineWidth: 10,
             lineDashType: 2
           }}
         />
@@ -212,7 +241,7 @@ export default function App() {
             fillColor: '#FF0000',
             strokeColor: '#00FF00',
             lineWidth: 6,
-            lineDashType: 1
+            lineDashType: 0
           }}
         />
       </MapView>

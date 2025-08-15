@@ -220,6 +220,23 @@ export interface MarkerData {
    * 大头针颜色，只有在 image 为空时才生效
    */
   pinColor?: string
+  /**
+   * 额外信息
+   */
+  extra?: {
+    /**
+     * 标记点所属的省份
+     */
+    province?: string
+    /**
+     * 标记点所属的城市
+     */
+    city?: string
+    /**
+     * 标记点所属的区县
+     */
+    district?: string
+  }
 }
 
 export interface CustomStyleOptions {
@@ -325,8 +342,6 @@ export interface MapViewProps extends ViewProps {
    * - 0: 不追踪用户的location更新
    * - 1: 追踪用户的location更新
    * - 2: 追踪用户的location与heading更新
-   *
-   * 如果设置了 center，则地图会忽略用户位置更新
    */
   userTrackingMode?: UserTrackingMode
   /**
@@ -353,6 +368,28 @@ export interface MapViewProps extends ViewProps {
    * 最大缩放级别
    */
   maxZoomLevel?: number
+  /**
+   * 行政区划聚合配置，配置行政区划聚合之后，必须在 Marker 中配置 extra 字段
+   */
+  regionClusteringOptions?: {
+    /**
+     * 是否启用
+     */
+    enabled: boolean
+    /**
+     * 聚合规则
+     */
+    rules: {
+      /**
+       * 根据哪个字段聚合
+       */
+      by: 'district' | 'city' | 'province'
+      /**
+       * 当 zoomLevel 小于等于该值时，启用行政区划聚合
+       */
+      thresholdZoomLevel: number
+    }[]
+  }
   /**
    * 地图加载成功事件
    */

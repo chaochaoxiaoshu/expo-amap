@@ -1,93 +1,94 @@
-import ExpoModulesCore
 import AMapSearchKit
+import ExpoModulesCore
 import Foundation
 
 class SearchManager: NSObject {
     private weak var search: AMapSearchAPI?
-    
+
     private let inputTipsSearchHandler = PromiseDelegateHandler<[String: Any]>()
-    
+
     private let geocodeSearchHandler = PromiseDelegateHandler<[String: Any]>()
     private let reGeocodeSearchHandler = PromiseDelegateHandler<[String: Any]>()
-    
+
     private let drivingSearchHandler = PromiseDelegateHandler<[String: Any]>()
     private let walkingSearchHandler = PromiseDelegateHandler<[String: Any]>()
     private let ridingSearchHandler = PromiseDelegateHandler<[String: Any]>()
     private let transitSearchHandler = PromiseDelegateHandler<[String: Any]>()
-    
+
     init(search: AMapSearchAPI? = nil) {
         self.search = search
     }
-    
+
     func searchInputTips(_ options: SearchInputTipsOptions, _ promise: Promise) {
         guard let search = search else {
             promise.reject("E_SEARCH_DELEGATE_NOT_FOUND", "搜索委托未初始化")
             return
         }
-        
+
         inputTipsSearchHandler.begin(
             resolve: { value in promise.resolve(value) },
             reject: { code, message, error in
                 promise.reject(code, message)
             }
         )
-        
+
         let request = AMapInputTipsSearchRequest()
         request.keywords = options.keywords
         request.city = options.city
         request.cityLimit = options.cityLimit ?? false
         request.location = options.location
         request.types = options.types
-        
+
         search.aMapInputTipsSearch(request)
     }
-    
+
     func searchGeocode(_ options: SearchGeocodeOptions, _ promise: Promise) {
         guard let search = search else {
             promise.reject("E_SEARCH_DELEGATE_NOT_FOUND", "搜索委托未初始化")
             return
         }
-        
+
         geocodeSearchHandler.begin(
             resolve: { value in promise.resolve(value) },
             reject: { code, message, error in
                 promise.reject(code, message)
             }
         )
-        
+
         let request = AMapGeocodeSearchRequest()
         request.address = options.address
         request.city = options.city
         request.country = options.country
-        
+
         search.aMapGeocodeSearch(request)
     }
-    
+
     func searchReGeocode(_ options: SearchReGeocodeOptions, _ promise: Promise) {
         guard let search = search else {
             promise.reject("E_SEARCH_DELEGATE_NOT_FOUND", "搜索委托未初始化")
             return
         }
-        
+
         reGeocodeSearchHandler.begin(
             resolve: { value in promise.resolve(value) },
             reject: { code, message, error in
                 promise.reject(code, message)
             }
         )
-        
+
         let request = AMapReGeocodeSearchRequest()
         if let location = options.location {
-            request.location = AMapGeoPoint.location(withLatitude: location.latitude, longitude: location.longitude)
+            request.location = AMapGeoPoint.location(
+                withLatitude: location.latitude, longitude: location.longitude)
         }
         request.mode = options.mode
         request.poitype = options.poitype
         request.radius = options.radius ?? 1000
         request.requireExtension = options.requireExtension ?? false
-        
+
         search.aMapReGoecodeSearch(request)
     }
-    
+
     func searchDrivingRoute(_ options: SearchDrivingRouteOptions, _ promise: Promise) {
         guard let search = search else {
             promise.reject("E_SEARCH_DELEGATE_NOT_FOUND", "搜索委托未初始化")
@@ -130,7 +131,7 @@ class SearchManager: NSObject {
 
         search.aMapDrivingV2RouteSearch(request)
     }
-    
+
     func searchWalkingRoute(_ options: SearchWalkingRouteOptions, _ promise: Promise) {
         guard let search = search else {
             promise.reject("E_SEARCH_DELEGATE_NOT_FOUND", "搜索委托未初始化")
@@ -167,7 +168,7 @@ class SearchManager: NSObject {
 
         search.aMapWalkingRouteSearch(request)
     }
-    
+
     func searchRidingRoute(_ options: SearchRidingRouteOptions, _ promise: Promise) {
         guard let search = search else {
             promise.reject("E_SEARCH_DELEGATE_NOT_FOUND", "搜索委托未初始化")
@@ -180,7 +181,7 @@ class SearchManager: NSObject {
                 promise.reject(code, message)
             }
         )
-        
+
         var showFieldType: AMapRidingRouteShowFieldsType? = nil
         switch options.showFieldType {
         case .none:
@@ -194,7 +195,7 @@ class SearchManager: NSObject {
         case .all:
             showFieldType = .all
         }
-        
+
         let request = AMapRidingRouteSearchRequest()
         request.origin = AMapGeoPoint.location(
             withLatitude: options.origin.latitude, longitude: options.origin.longitude)
@@ -202,23 +203,23 @@ class SearchManager: NSObject {
             withLatitude: options.destination.latitude, longitude: options.destination.longitude)
         request.showFieldsType = showFieldType ?? .none
         request.alternativeRoute = options.alternativeRoute
-        
+
         search.aMapRidingRouteSearch(request)
     }
-    
+
     func searchTransitRoute(_ options: SearchTransitRouteOptions, _ promise: Promise) {
         guard let search = search else {
             promise.reject("E_SEARCH_DELEGATE_NOT_FOUND", "搜索委托未初始化")
             return
         }
-        
+
         transitSearchHandler.begin(
             resolve: { value in promise.resolve(value) },
             reject: { code, message, error in
                 promise.reject(code, message)
             }
         )
-        
+
         var showFieldType: AMapTransitRouteShowFieldsType? = nil
         switch options.showFieldType {
         case .none:
@@ -232,7 +233,7 @@ class SearchManager: NSObject {
         case .all:
             showFieldType = .all
         }
-        
+
         let request = AMapTransitRouteSearchRequest()
         request.origin = AMapGeoPoint.location(
             withLatitude: options.origin.latitude, longitude: options.origin.longitude)
@@ -252,19 +253,21 @@ class SearchManager: NSObject {
         request.date = options.date
         request.time = options.time
         request.showFieldsType = showFieldType ?? .none
-        
+
         search.aMapTransitRouteSearch(request)
     }
 }
 
 extension SearchManager: AMapSearchDelegate {
-    
-    func onInputTipsSearchDone(_ request: AMapInputTipsSearchRequest!, response: AMapInputTipsSearchResponse!) {
+
+    func onInputTipsSearchDone(
+        _ request: AMapInputTipsSearchRequest!, response: AMapInputTipsSearchResponse!
+    ) {
         guard let response = response else {
             inputTipsSearchHandler.finishFailure(code: "1", message: "无效的响应数据")
             return
         }
-        
+
         inputTipsSearchHandler.finishSuccess([
             "tips": response.tips.compactMap({ tip in
                 [
@@ -273,19 +276,21 @@ extension SearchManager: AMapSearchDelegate {
                     "address": tip.address,
                     "adcode": tip.adcode,
                     "district": tip.district,
-                    "typecode": tip.typecode
+                    "typecode": tip.typecode,
                 ]
             }),
-            "count": response.count
+            "count": response.count,
         ])
     }
-    
-    func onGeocodeSearchDone(_ request: AMapGeocodeSearchRequest!, response: AMapGeocodeSearchResponse!) {
+
+    func onGeocodeSearchDone(
+        _ request: AMapGeocodeSearchRequest!, response: AMapGeocodeSearchResponse!
+    ) {
         guard let response = response else {
             geocodeSearchHandler.finishFailure(code: "1", message: "无效的响应数据")
             return
         }
-        
+
         geocodeSearchHandler.finishSuccess([
             "count": response.count,
             "geocodes": response.geocodes.compactMap({ geocode in
@@ -298,21 +303,23 @@ extension SearchManager: AMapSearchDelegate {
                     "district": geocode.district,
                     "formattedAddress": geocode.formattedAddress,
                     "level": geocode.level,
-                    "neighborhood":geocode.neighborhood,
+                    "neighborhood": geocode.neighborhood,
                     "postcode": geocode.postcode,
                     "province": geocode.province,
                     "township": geocode.township,
                 ]
-            })
+            }),
         ])
     }
-    
-    func onReGeocodeSearchDone(_ request: AMapReGeocodeSearchRequest!, response: AMapReGeocodeSearchResponse!) {
+
+    func onReGeocodeSearchDone(
+        _ request: AMapReGeocodeSearchRequest!, response: AMapReGeocodeSearchResponse!
+    ) {
         guard let response = response else {
             reGeocodeSearchHandler.finishFailure(code: "1", message: "无效的响应数据")
             return
         }
-        
+
         reGeocodeSearchHandler.finishSuccess([
             "formattedAddress": response.regeocode.formattedAddress ?? "",
             "addressComponent": [
@@ -326,39 +333,39 @@ extension SearchManager: AMapSearchDelegate {
                 "neighborhood": response.regeocode.addressComponent.neighborhood,
                 "province": response.regeocode.addressComponent.province,
                 "towncode": response.regeocode.addressComponent.towncode,
-                "township": response.regeocode.addressComponent.township
+                "township": response.regeocode.addressComponent.township,
             ],
             "aois": response.regeocode.aois?.compactMap({ aoi in
                 [
                     "adcode": aoi.adcode,
                     "name": aoi.name,
                     "type": aoi.type,
-                    "uid": aoi.uid
+                    "uid": aoi.uid,
                 ]
             }) ?? [],
-            "pois": response.regeocode.pois?.compactMap({ aoi in
+            "pois": response.regeocode.pois?.compactMap({ poi in
                 [
-                    "adcode": aoi.adcode,
-                    "address": aoi.address,
-                    "businessArea": aoi.businessArea,
-                    "city": aoi.city,
-                    "citycode": aoi.citycode,
-                    "direction": aoi.direction,
-                    "district": aoi.district,
-                    "email": aoi.email,
-                    "gridcode": aoi.gridcode,
-                    "name": aoi.name,
-                    "naviPOIId": aoi.naviPOIId,
-                    "parkingType": aoi.parkingType,
-                    "pcode": aoi.pcode,
-                    "postcode": aoi.postcode,
-                    "province": aoi.province,
-                    "shopID": aoi.shopID,
-                    "tel": aoi.tel,
-                    "type": aoi.type,
-                    "typecode": aoi.typecode,
-                    "uid": aoi.uid,
-                    "website": aoi.website
+                    "adcode": poi.adcode,
+                    "address": poi.address,
+                    "businessArea": poi.businessArea,
+                    "city": poi.city,
+                    "citycode": poi.citycode,
+                    "direction": poi.direction,
+                    "district": poi.district,
+                    "email": poi.email,
+                    "gridcode": poi.gridcode,
+                    "name": poi.name,
+                    "naviPOIId": poi.naviPOIId,
+                    "parkingType": poi.parkingType,
+                    "pcode": poi.pcode,
+                    "postcode": poi.postcode,
+                    "province": poi.province,
+                    "shopID": poi.shopID,
+                    "tel": poi.tel,
+                    "type": poi.type,
+                    "typecode": poi.typecode,
+                    "uid": poi.uid,
+                    "website": poi.website,
                 ]
             }) ?? [],
             "roadinters": response.regeocode.roadinters?.compactMap({ roadInter in
@@ -367,16 +374,16 @@ extension SearchManager: AMapSearchDelegate {
                     "firstId": roadInter.firstId,
                     "firstName": roadInter.firstName,
                     "secondId": roadInter.secondId,
-                    "secondName": roadInter.secondName
+                    "secondName": roadInter.secondName,
                 ]
             }) ?? [],
             "roads": response.regeocode.roads?.compactMap({ road in
                 [
                     "direction": road.direction,
                     "name": road.name,
-                    "uid": road.uid
+                    "uid": road.uid,
                 ]
-            }) ?? []
+            }) ?? [],
         ])
     }
 
@@ -427,13 +434,17 @@ extension SearchManager: AMapSearchDelegate {
     // 路线搜索失败的回调
     func aMapSearchRequest(_ request: Any!, didFailWithError error: Error!) {
         if request is AMapDrivingCalRouteSearchRequest {
-            drivingSearchHandler.finishFailure(code: "1", message: "路线规划失败: \(error?.localizedDescription ?? "Unknown error")")
+            drivingSearchHandler.finishFailure(
+                code: "1", message: "路线规划失败: \(error?.localizedDescription ?? "Unknown error")")
         } else if request is AMapWalkingRouteSearchRequest {
-            walkingSearchHandler.finishFailure(code: "1", message: "路线规划失败: \(error?.localizedDescription ?? "Unknown error")")
+            walkingSearchHandler.finishFailure(
+                code: "1", message: "路线规划失败: \(error?.localizedDescription ?? "Unknown error")")
         } else if request is AMapRidingRouteSearchRequest {
-            ridingSearchHandler.finishFailure(code: "1", message: "路线规划失败: \(error?.localizedDescription ?? "Unknown error")")
+            ridingSearchHandler.finishFailure(
+                code: "1", message: "路线规划失败: \(error?.localizedDescription ?? "Unknown error")")
         } else if request is AMapTransitRouteSearchRequest {
-            transitSearchHandler.finishFailure(code: "1", message: "路线规划失败: \(error?.localizedDescription ?? "Unknown error")")
+            transitSearchHandler.finishFailure(
+                code: "1", message: "路线规划失败: \(error?.localizedDescription ?? "Unknown error")")
         }
     }
 }
