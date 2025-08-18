@@ -7,6 +7,50 @@ import ExpoAmapModule, {
   type MapViewRef
 } from 'expo-amap'
 
+const examplePoints = [
+  {
+    id: '1',
+    city: '太原市',
+    district: '小店区',
+    coordinate: { latitude: 37.824951, longitude: 112.566923 }
+  },
+  {
+    id: '2',
+    city: '太原市',
+    district: '小店区',
+    coordinate: { latitude: 37.816595, longitude: 112.562669 }
+  },
+  {
+    id: '3',
+    city: '太原市',
+    district: '小店区',
+    coordinate: { latitude: 37.809569, longitude: 112.572245 }
+  },
+  {
+    id: '4',
+    city: '太原市',
+    district: '万柏林区',
+    coordinate: { latitude: 37.862116, longitude: 112.522754 }
+  },
+  {
+    id: '5',
+    city: '太原市',
+    district: '万柏林区',
+    coordinate: { latitude: 37.867722, longitude: 112.507784 }
+  },
+  {
+    id: '6',
+    city: '太原市',
+    district: '万柏林区',
+    coordinate: { latitude: 37.876592, longitude: 112.492825 }
+  }
+] satisfies {
+  id: string
+  city: string
+  district: string
+  coordinate: { latitude: number; longitude: number }
+}[]
+
 async function getLocation() {
   const location = await ExpoAmapModule.requestLocation()
   console.log('location', location)
@@ -112,17 +156,24 @@ export default function App() {
       <MapView
         ref={mapViewRef}
         style={{ flex: 1 }}
-        region={{
-          center: { latitude: 31.230545, longitude: 121.473724 },
+        initialRegion={{
+          center: { latitude: 37.842568, longitude: 112.539263 },
           span: {
-            latitudeDelta: 0.1,
-            longitudeDelta: 0.1
+            latitudeDelta: 0.2,
+            longitudeDelta: 0.2
           }
         }}
-        mapType={0}
         showCompass={false}
         showUserLocation={true}
         userTrackingMode={0}
+        regionClusteringOptions={{
+          enabled: true,
+          rules: [
+            { by: 'district', thresholdZoomLevel: 12 },
+            { by: 'city', thresholdZoomLevel: 10 },
+            { by: 'province', thresholdZoomLevel: 8 }
+          ]
+        }}
         onLoad={(event) => {
           console.log('🗺️ 地图加载成功:', event.nativeEvent)
         }}
@@ -136,84 +187,28 @@ export default function App() {
           console.log('🗺️ 地图点击标记:', event.nativeEvent)
         }}
       >
-        <Marker
-          id='marker1'
-          coordinate={{ latitude: 31.230545, longitude: 121.473724 }}
-          title='闪数科技'
-          subtitle='闪数科技'
-          canShowCallout
-          zIndex={3}
-          image={{
-            url: 'https://qiniu.zdjt.com/shop/2025-07-24/e84b870f7c916a381afe91c974243cb5.jpg',
-            size: {
-              width: 150,
-              height: 35
-            }
-          }}
-          centerOffset={{
-            x: 0,
-            y: -15
-          }}
-          calloutOffset={{
-            x: 0,
-            y: 0
-          }}
-          textStyle={{
-            fontSize: 32,
-            color: '#FF0000'
-          }}
-          extra={{
-            province: '上海市',
-            city: '上海市',
-            district: '浦东新区'
-          }}
-        />
-        <Marker
-          id='marker2'
-          coordinate={{ latitude: 31.223257, longitude: 121.471266 }}
-          title='闪数科技'
-          subtitle='闪数科技'
-          canAdjustPosition
-          canShowCallout
-          extra={{
-            province: '上海市',
-            city: '上海市',
-            district: '浦东新区'
-          }}
-        />
-        <Marker
-          id='marker3'
-          zIndex={5}
-          coordinate={{ latitude: 31.227265, longitude: 121.479399 }}
-          title='飞书'
-          subtitle='闪数科技'
-          canShowCallout
-          canAdjustPosition
-          image={{
-            url: 'https://qiniu.zdjt.com/shop/2025-07-24/e84b870f7c916a381afe91c974243cb5.jpg',
-            size: {
-              width: 100,
-              height: 30
-            }
-          }}
-          centerOffset={{
-            x: 0,
-            y: -15
-          }}
-          textStyle={{
-            fontSize: 24,
-            color: '#FF0000'
-          }}
-          extra={{
-            province: '上海市',
-            city: '上海市',
-            district: '浦东新区'
-          }}
-        />
+        {examplePoints.map((point) => (
+          <Marker
+            id={point.id}
+            coordinate={{
+              latitude: point.coordinate.latitude,
+              longitude: point.coordinate.longitude
+            }}
+            canShowCallout
+            style='custom'
+            title='闪数123'
+            extra={{
+              province: '山西省',
+              city: point.city,
+              district: point.district
+            }}
+          />
+        ))}
         <Polyline
           coordinates={[
-            { latitude: 31.230545, longitude: 121.473724 },
-            { latitude: 31.228051, longitude: 121.467568 }
+            { latitude: 37.83844, longitude: 112.531737 },
+            { latitude: 37.818767, longitude: 112.528263 },
+            { latitude: 37.817663, longitude: 112.538917 }
           ]}
           style={{
             strokeColor: '#FF0000',
@@ -223,8 +218,8 @@ export default function App() {
         />
         <Polyline
           coordinates={[
-            { latitude: 31.228051, longitude: 121.467568 },
-            { latitude: 31.223257, longitude: 121.471266 }
+            { latitude: 37.817663, longitude: 112.538917 },
+            { latitude: 37.817502, longitude: 112.56487 }
           ]}
           style={{
             strokeColor: '#00FF00',
@@ -234,8 +229,8 @@ export default function App() {
         />
         <Polyline
           coordinates={[
-            { latitude: 31.223257, longitude: 121.471266 },
-            { latitude: 31.227265, longitude: 121.479399 }
+            { latitude: 37.817502, longitude: 112.56487 },
+            { latitude: 37.838878, longitude: 112.568771 }
           ]}
           style={{
             fillColor: '#FF0000',

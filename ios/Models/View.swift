@@ -49,6 +49,8 @@ struct TextStyle: Record {
     @Field var fontSize: Double?
     @Field var fontWeight: String?
     @Field var numberOfLines: Int?
+    @Field var padding: Point?
+    @Field var backgroundColor: String?
 }
 
 struct MarkerImage: Record {
@@ -65,20 +67,20 @@ struct MarkerExtra: Record {
 struct Marker: Record {
     @Field var id: String
     @Field var coordinate: Coordinate
+    @Field var style: String?
     @Field var title: String?
     @Field var subtitle: String?
-    @Field var zIndex: Int?
-    @Field var image: MarkerImage?
     @Field var centerOffset: Point?
     @Field var calloutOffset: Point?
     @Field var textOffset: Point?
+    @Field var image: MarkerImage?
+    @Field var textStyle: TextStyle?
+    @Field var pinColor: Int?
     @Field var enabled: Bool?
     @Field var highlighted: Bool?
     @Field var canShowCallout: Bool?
     @Field var draggable: Bool?
     @Field var canAdjustPosition: Bool?
-    @Field var textStyle: TextStyle?
-    @Field var pinColor: Int?
     @Field var extra: MarkerExtra?
 }
 

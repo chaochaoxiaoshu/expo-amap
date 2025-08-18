@@ -12,7 +12,6 @@ class MarkerManager {
             }
         }
     }
-    
     var regionClusteringOptions: RegionClusteringOptions? {
         didSet {
             if regionClusteringOptions?.enabled ?? false {
@@ -20,165 +19,112 @@ class MarkerManager {
             }
         }
     }
-    private var regionClusterMarkers: RegionClusterMarkers = RegionClusterMarkers()
 
     init(mapView: MAMapView) {
         self.mapView = mapView
     }
-
-    func setMarkers(_ markers: [Marker]) {
-        guard let mapView = mapView else { return }
-
-        // 保存新的 markers
-        let newMarkers = markers
-        let oldMarkersMap = Dictionary(uniqueKeysWithValues: self.markers.map { ($0.id, $0) })
-        self.markers = newMarkers
-
-        // 当前地图上已有的 SSAnnotation
-        let oldAnnotations = mapView.annotations.compactMap { $0 as? SSAnnotation }
-        let oldAnnotationsMap = Dictionary(uniqueKeysWithValues: oldAnnotations.map { ($0.id, $0) })
-
-        var annotationsToAdd: [SSAnnotation] = []
-        var annotationsToRemove: [SSAnnotation] = []
-
-        // 对比新增/更新
-        for marker in newMarkers {
-            if let oldMarker = oldMarkersMap[marker.id],
-                let oldAnnotation = oldAnnotationsMap[marker.id]
-            {
-                // id 一致，检查属性是否变化
-                let coordinateChanged =
-                    oldMarker.coordinate.latitude != marker.coordinate.latitude
-                    || oldMarker.coordinate.longitude != marker.coordinate.longitude
-                let titleChanged =
-                    oldMarker.title != marker.title || oldMarker.subtitle != marker.subtitle
-                let imageChanged =
-                    oldMarker.image?.url != marker.image?.url
-                    || oldMarker.image?.size.width != marker.image?.size.width
-                    || oldMarker.image?.size.height != marker.image?.size.height
-                let zIndexChanged = oldMarker.zIndex != marker.zIndex
-                let centerOffsetChanged =
-                    oldMarker.centerOffset?.x != marker.centerOffset?.x
-                    || oldMarker.centerOffset?.y != marker.centerOffset?.y
-                let calloutOffsetChanged =
-                    oldMarker.calloutOffset?.x != marker.calloutOffset?.x
-                    || oldMarker.calloutOffset?.y != marker.calloutOffset?.y
-                let textOffsetChanged =
-                    oldMarker.textOffset?.x != marker.textOffset?.x
-                    || oldMarker.textOffset?.y != marker.textOffset?.y
-                let enabledChanged = oldMarker.enabled != marker.enabled
-                let highlightedChanged = oldMarker.highlighted != marker.highlighted
-                let canShowCalloutChanged = oldMarker.canShowCallout != marker.canShowCallout
-                let draggableChanged = oldMarker.draggable != marker.draggable
-                let canAdjustChanged = oldMarker.canAdjustPosition != marker.canAdjustPosition
-                let textStyleChanged =
-                    oldMarker.textStyle?.color != marker.textStyle?.color
-                    || oldMarker.textStyle?.fontSize != marker.textStyle?.fontSize
-                    || oldMarker.textStyle?.fontWeight != marker.textStyle?.fontWeight
-                    || oldMarker.textStyle?.numberOfLines != marker.textStyle?.numberOfLines
-                let pinColorChanged = oldMarker.pinColor != marker.pinColor
-
-                if coordinateChanged || titleChanged || imageChanged || zIndexChanged
-                    || centerOffsetChanged || calloutOffsetChanged || textOffsetChanged
-                    || enabledChanged || highlightedChanged || canShowCalloutChanged
-                    || draggableChanged || canAdjustChanged || textStyleChanged || pinColorChanged
-                {
-
-                    // 更新已有 Annotation
-                    if let view = mapView.view(for: oldAnnotation) as? TextAnnotationView {
-                        // 坐标
-                        if coordinateChanged {
-                            oldAnnotation.coordinate = CLLocationCoordinate2D(
-                                latitude: marker.coordinate.latitude,
-                                longitude: marker.coordinate.longitude
-                            )
-                        }
-
-                        // title/subtitle
-                        if titleChanged {
-                            view.setText(marker.title ?? oldAnnotation.title)
-                            oldAnnotation.title = marker.title
-                            oldAnnotation.subtitle = marker.subtitle
-                        }
-
-                        // zIndex
-                        if zIndexChanged, let z = marker.zIndex {
-                            view.zIndex = z
-                            mapView.reactZIndexSortedSubviews()
-                        }
-
-                        // center/callout/text offsets
-                        if let co = marker.centerOffset, centerOffsetChanged {
-                            view.centerOffset = CGPoint(x: co.x, y: co.y)
-                        }
-                        if let co = marker.calloutOffset, calloutOffsetChanged {
-                            view.calloutOffset = CGPoint(x: co.x, y: co.y)
-                        }
-                        if let to = marker.textOffset, textOffsetChanged {
-                            view.textOffset = CGPoint(x: to.x, y: to.y)
-                            view.layoutSubviews()
-                        }
-
-                        // enabled/highlighted/callout/draggable/adjust
-                        if enabledChanged { view.isEnabled = marker.enabled ?? true }
-                        if highlightedChanged {
-                            view.isHighlighted = marker.highlighted ?? false
-                            view.setNeedsDisplay()
-                            view.layoutIfNeeded()
-                        }
-                        if canShowCalloutChanged {
-                            view.canShowCallout = marker.canShowCallout ?? true
-                            view.setNeedsDisplay()
-                            view.layoutIfNeeded()
-                        }
-                        if draggableChanged { view.isDraggable = marker.draggable ?? false }
-                        if canAdjustChanged {
-                            view.canAdjustPositon = marker.canAdjustPosition ?? false
-                        }
-
-                        if textStyleChanged, let style = marker.textStyle { view.textStyle = style }
-
-                        // 图片
-                        if imageChanged, let url = marker.image?.url {
-                            Task { [weak view] in
-                                let uiImage = await ImageLoader.from(url)
-                                let cgSize = CGSize(
-                                    width: marker.image?.size.width ?? 0,
-                                    height: marker.image?.size.height ?? 0)
-                                let resized = uiImage?.resized(to: cgSize)
-                                DispatchQueue.main.async {
-                                    view?.setImage(resized, url: url, size: cgSize)
-                                }
-                            }
-                        }
-                    }
-                }
-            } else {
-                // 新增标注
-                let annotation = SSAnnotation(
-                    id: marker.id,
-                    coordinate: CLLocationCoordinate2D(
-                        latitude: marker.coordinate.latitude,
-                        longitude: marker.coordinate.longitude),
-                    title: marker.title,
-                    subtitle: marker.subtitle
-                )
-                annotationsToAdd.append(annotation)
-            }
-        }
-
-        // 删除旧标注
-        let newIds = Set(newMarkers.map { $0.id })
-        annotationsToRemove = oldAnnotations.filter { !newIds.contains($0.id) }
-
-        // 更新地图
-        mapView.removeAnnotations(annotationsToRemove)
-        mapView.addAnnotations(annotationsToAdd)
-    }
-
+    
     func getMarker(id: String) -> Marker? {
         markers.first { marker in
             marker.id == id
+        }
+    }
+
+    func setMarkers(_ markers: [Marker]) {
+        applyDiff(markers)
+        self.markers = markers
+    }
+    
+    private func applyDiff(_ markers: [Marker]) {
+        guard let mapView = mapView else { return }
+        
+        let oldAnnotations = mapView.annotations.compactMap { $0 as? SSAnnotation }
+        
+        let diff = diffItems(oldItems: self.markers, newItems: markers, isSame: { $0.id == $1.id && $0.style == $1.style }, changes: markerChanges)
+        
+        let toRemoveIds = diff.toRemove.map { $0.id }
+        let toRemoveAnnotations = oldAnnotations.filter { toRemoveIds.contains($0.id) }
+        mapView.removeAnnotations(toRemoveAnnotations)
+        
+        for update in diff.toUpdate {
+            guard
+                let annotation = oldAnnotations.first(where: { $0.id == update.old.id }),
+                let view = mapView.view(for: annotation)
+            else { return }
+            updateAnnotation(annotation: annotation, view: view, changes: update.changes)
+        }
+        
+        let toAddAnnotations = diff.toAdd.map { marker in
+            return SSAnnotation(id: marker.id, coordinate: CLLocationCoordinate2D(latitude: marker.coordinate.latitude, longitude: marker.coordinate.longitude), title: marker.title, subtitle: marker.subtitle)
+        }
+        mapView.addAnnotations(toAddAnnotations)
+    }
+    
+    private func updateAnnotation(annotation: SSAnnotation, view: MAAnnotationView, changes: [FieldChange]) {
+        for change in changes {
+            if change.key == "coordinate", let newValue = change.newValue as? Coordinate {
+                annotation.coordinate = CLLocationCoordinate2D(latitude: newValue.latitude, longitude: newValue.longitude)
+            }
+            if change.key == "title", let newValue = change.newValue as? String {
+                annotation.title = newValue
+            }
+            if change.key == "subtitle", let newValue = change.newValue as? String {
+                annotation.subtitle = newValue
+            }
+            if change.key == "centerOffset", let newValue = change.newValue as? Point {
+                view.centerOffset = CGPoint(x: newValue.x, y: newValue.y)
+            }
+            if change.key == "calloutOffset", let newValue = change.newValue as? Point {
+                view.calloutOffset = CGPoint(x: newValue.x, y: newValue.y)
+            }
+            if change.key == "enabled", let newValue = change.newValue as? Bool {
+                view.isEnabled = newValue
+            }
+            if change.key == "highlighted", let newValue = change.newValue as? Bool {
+                view.isHighlighted = newValue
+            }
+            if change.key == "canShowCallout", let newValue = change.newValue as? Bool {
+                view.canShowCallout = newValue
+            }
+            if change.key == "draggable", let newValue = change.newValue as? Bool {
+                view.isDraggable = newValue
+            }
+            if change.key == "canAdjustPosition", let newValue = change.newValue as? Bool {
+                view.canAdjustPositon = newValue
+            }
+        }
+        
+        if let view = view as? MAPinAnnotationView {
+            for change in changes {
+                if change.key == "pinColor", let newValue = change.newValue as? String {
+                    if newValue == "red" {
+                        view.pinColor = .red
+                    } else if newValue == "green" {
+                        view.pinColor = .green
+                    } else if newValue == "purple" {
+                        view.pinColor = .purple
+                    }
+                }
+            }
+        } else if let view = view as? TextAnnotationView {
+            for change in changes {
+                if change.key == "textOffset", let newValue = change.newValue as? Point {
+                    view.textOffset = CGPoint(x: newValue.x, y: newValue.y)
+                }
+                if change.key == "image", let newValue = change.newValue as? MarkerImage {
+                    Task { [weak view] in
+                        let uiImage = await ImageLoader.from(newValue.url)
+                        let cgSize = CGSize(width: newValue.size.width, height: newValue.size.height)
+                        let resized = uiImage?.resized(to: cgSize)
+                        DispatchQueue.main.async {
+                            view?.setImage(resized, url: newValue.url, size: cgSize)
+                        }
+                    }
+                }
+                if change.key == "textStyle", let newValue = change.newValue as? TextStyle {
+                    view.textStyle = newValue
+                }
+            }
         }
     }
     
@@ -187,59 +133,64 @@ class MarkerManager {
     }
     
     func calculateClusterMarkers() {
-        guard let options = regionClusteringOptions else {
-            regionClusterMarkers = RegionClusterMarkers()
-            return
-        }
+        guard let options = regionClusteringOptions else { return }
         guard let mapView = mapView else { return }
-        
+
+        // 获取已有 clusterAnnotations
+        var existingClusters = Dictionary(
+            uniqueKeysWithValues: mapView.annotations.compactMap { $0 as? ClusterAnnotation }.map { ($0.id, $0) }
+        )
+
         for rule in options.rules {
+            // 按分组字段分组
             let grouped = Dictionary(grouping: markers, by: { marker in
-                if rule.by == "province" {
-                    return marker.extra?.province
-                } else if rule.by == "city" {
-                    return marker.extra?.city
-                } else if rule.by == "district" {
-                    return marker.extra?.district
+                switch rule.by {
+                case "province":
+                    return marker.extra?.province ?? "未知省份"
+                case "city":
+                    return marker.extra?.city ?? "未知城市"
+                case "district":
+                    return marker.extra?.district ?? "未知区"
+                default:
+                    return marker.extra?.province ?? "未知"
                 }
-                return marker.extra?.province
             })
+
             for (regionId, markersInRegion) in grouped {
-                guard !markersInRegion.isEmpty, let regionId = regionId else { continue }
-                
+                guard !markersInRegion.isEmpty else { continue }
+
+                // 计算平均经纬度
                 let lat = markersInRegion.map { $0.coordinate.latitude }.reduce(0, +) / Double(markersInRegion.count)
                 let lon = markersInRegion.map { $0.coordinate.longitude }.reduce(0, +) / Double(markersInRegion.count)
-                
-                let cluster = ClusterMarker(
-                    id: "\(regionId),\(lat),\(lon)",
-                    coordinate: CLLocationCoordinate2D(latitude: lat, longitude: lon),
-                    count: markersInRegion.count,
-                    markers: markersInRegion
-                )
-                
-                if rule.by == "province" {
-                    regionClusterMarkers.provinceClusterMarkers.append(cluster)
-                } else if rule.by == "city" {
-                    regionClusterMarkers.cityClusterMarkers.append(cluster)
-                } else if rule.by == "district" {
-                    regionClusterMarkers.districtClusterMarkers.append(cluster)
+
+                let clusterId = "\(rule.by)_\(regionId)"
+                if let existing = existingClusters[clusterId] {
+                    // 平滑更新 title/count/coordinate
+                    existing.coordinate = CLLocationCoordinate2D(latitude: lat, longitude: lon)
+                    existing.title = "\(regionId) \(markersInRegion.count)"
+                    existing.count = markersInRegion.count
+                    existing.subtitle = ""
+                    existing.by = rule.by
+                    // 移除已处理的 annotation
+                    existingClusters.removeValue(forKey: clusterId)
+                } else {
+                    // 新增 clusterAnnotation
+                    let annotation = ClusterAnnotation(
+                        id: clusterId,
+                        coordinate: CLLocationCoordinate2D(latitude: lat, longitude: lon),
+                        title: "\(regionId) \(markersInRegion.count)",
+                        subtitle: "",
+                        count: markersInRegion.count,
+                        by: rule.by
+                    )
+                    mapView.addAnnotation(annotation)
                 }
             }
         }
+
+        // 移除不再存在的 clusterAnnotation
+        mapView.removeAnnotations(existingClusters.values.map { $0 })
     }
-}
-
-struct RegionClusterMarkers {
-    var provinceClusterMarkers: [ClusterMarker] = []
-    var cityClusterMarkers: [ClusterMarker] = []
-    var districtClusterMarkers: [ClusterMarker] = []
-}
-
-struct ClusterMarker {
-    let id: String         // 聚合 ID，可以用行政区 ID
-    let coordinate: CLLocationCoordinate2D
-    let count: Int         // 该聚合包含的原始点数量
-    let markers: [Marker]  // 原始点集合
 }
 
 class SSAnnotation: NSObject, MAAnnotation {
@@ -265,22 +216,32 @@ class SSAnnotation: NSObject, MAAnnotation {
     }
 }
 
+class ClusterAnnotation: SSAnnotation {
+    var count: Int = 0
+    var by: String?
+    
+    init(id: String, coordinate: CLLocationCoordinate2D, title: String?, subtitle: String?, count: Int, by: String) {
+        super.init(id: id, coordinate: coordinate, title: title, subtitle: subtitle)
+        self.count = count
+        self.title = title
+        self.by = by
+    }
+}
+
 class TextAnnotationView: MAAnnotationView {
 
-    private let textLabel = UILabel()
-
-    var textStyle: TextStyle? = nil {
+    private let textLabel = PaddedLabel()
+    var textStyle: TextStyle? {
         didSet {
             updateTextStyle()
         }
     }
     var textOffset: CGPoint? = .zero {
-        didSet {
-            positionLabel()
-        }
+        didSet { positionLabel() }
     }
-
     var currentImageURL: String?
+
+    private let minTouchSize: CGSize = CGSize(width: 44, height: 44)
 
     override init(annotation: MAAnnotation?, reuseIdentifier: String?) {
         super.init(annotation: annotation, reuseIdentifier: reuseIdentifier)
@@ -290,6 +251,7 @@ class TextAnnotationView: MAAnnotationView {
 
     required init?(coder: NSCoder) { fatalError("init(coder:) has not been implemented") }
 
+    // MARK: - 设置图片
     func setImage(_ image: UIImage?, url: String?, size: CGSize? = nil) {
         let needsUpdate = currentImageURL != url || image?.size != self.image?.size
         guard needsUpdate else { return }
@@ -303,30 +265,67 @@ class TextAnnotationView: MAAnnotationView {
         layoutIfNeeded()
     }
 
+    // MARK: - 设置文本
     func setText(_ text: String?) {
         textLabel.text = text
+        textLabel.invalidateIntrinsicContentSize()
         textLabel.sizeToFit()
+        updateFrameForLabel()
         positionLabel()
         bringSubviewToFront(textLabel)
+        
+        updateTextStyle()
     }
 
+    // MARK: - 样式更新
     private func updateTextStyle() {
         textLabel.textAlignment = .center
-        if let textStyle = textStyle {
-            if let hex = textStyle.color { textLabel.textColor = UIColor(hex: hex) }
+
+        if let style = textStyle {
+            if let hex = style.color { textLabel.textColor = UIColor(hex: hex) }
             textLabel.font = UIFont.systemFont(
-                ofSize: textStyle.fontSize ?? 17,
-                weight: UIFont.Weight(string: textStyle.fontWeight ?? "") ?? .regular)
-            textLabel.numberOfLines = textStyle.numberOfLines ?? 1
+                ofSize: style.fontSize ?? 17,
+                weight: UIFont.Weight(string: style.fontWeight ?? "") ?? .regular
+            )
+            textLabel.numberOfLines = style.numberOfLines ?? 1
+
+            if let padding = style.padding {
+                textLabel.padding = UIEdgeInsets(top: padding.y, left: padding.x, bottom: padding.y, right: padding.x)
+            }
+            if let bgHex = style.backgroundColor {
+                textLabel.backgroundColor = UIColor(hex: bgHex)
+            }
         } else {
+            // 默认样式
             textLabel.font = .systemFont(ofSize: 14, weight: .medium)
             textLabel.textColor = .white
+            textLabel.padding = UIEdgeInsets(top: 4, left: 6, bottom: 4, right: 6)
+            textLabel.backgroundColor = UIColor(hex: "#5981D8")
         }
+
+        textLabel.layer.cornerRadius = 6
+        textLabel.layer.cornerCurve = .continuous
+        textLabel.layer.masksToBounds = true
+
+        // 更新布局
+        textLabel.invalidateIntrinsicContentSize()
         textLabel.sizeToFit()
+        updateFrameForLabel()
+        positionLabel()
         textLabel.setNeedsLayout()
         textLabel.layoutIfNeeded()
     }
 
+    // MARK: - 更新 annotation view frame 以包含 label
+    private func updateFrameForLabel() {
+        let labelSize = textLabel.sizeThatFits(CGSize(width: CGFloat.greatestFiniteMagnitude, height: CGFloat.greatestFiniteMagnitude))
+        self.frame.size = CGSize(
+            width: max(labelSize.width, self.frame.width),
+            height: max(labelSize.height, self.frame.height)
+        )
+    }
+
+    // MARK: - 定位文本
     private func positionLabel() {
         textLabel.center = CGPoint(
             x: bounds.width / 2 + (textOffset?.x ?? 0),
@@ -334,70 +333,103 @@ class TextAnnotationView: MAAnnotationView {
         )
     }
 
-    override var image: UIImage? {
-        didSet { setNeedsLayout() }
-    }
-
+    // MARK: - 布局
     override func layoutSubviews() {
         super.layoutSubviews()
         positionLabel()
         bringSubviewToFront(textLabel)
     }
+
+    override var image: UIImage? {
+        didSet { setNeedsLayout() }
+    }
+
+    // MARK: - 扩展触摸判定
+    override func point(inside point: CGPoint, with event: UIEvent?) -> Bool {
+        let labelFrame = textLabel.frame.insetBy(dx: -textLabel.padding.left, dy: -textLabel.padding.top)
+        let imageFrame = self.image != nil ? self.bounds : .zero
+        var touchFrame = labelFrame.union(imageFrame)
+
+        if touchFrame.width < minTouchSize.width { touchFrame.size.width = minTouchSize.width }
+        if touchFrame.height < minTouchSize.height { touchFrame.size.height = minTouchSize.height }
+
+        return touchFrame.contains(point)
+    }
 }
 
-///// 四叉树节点
-//class QuadTreeNode {
-//    let boundingBox: CGRect
-//    var points: [Marker] = []
-//    var children: [QuadTreeNode]? = nil
-//    let maxPoints = 4
-//
-//    init(boundingBox: CGRect) {
-//        self.boundingBox = boundingBox
-//    }
-//
-//    func insert(_ marker: Marker) {
-//        guard
-//            boundingBox.contains(
-//                CGPoint(x: marker.coordinate.longitude, y: marker.coordinate.latitude))
-//        else { return }
-//        if points.count < maxPoints {
-//            points.append(marker)
-//        } else {
-//            if children == nil { subdivide() }
-//            children?.forEach { $0.insert(marker) }
-//        }
-//    }
-//
-//    private func subdivide() {
-//        let midX = boundingBox.midX
-//        let midY = boundingBox.midY
-//        let minX = boundingBox.minX
-//        let minY = boundingBox.minY
-//        let maxX = boundingBox.maxX
-//        let maxY = boundingBox.maxY
-//
-//        children = [
-//            QuadTreeNode(
-//                boundingBox: CGRect(x: minX, y: minY, width: midX - minX, height: midY - minY)),
-//            QuadTreeNode(
-//                boundingBox: CGRect(x: midX, y: minY, width: maxX - midX, height: midY - minY)),
-//            QuadTreeNode(
-//                boundingBox: CGRect(x: minX, y: midY, width: midX - minX, height: maxY - midY)),
-//            QuadTreeNode(
-//                boundingBox: CGRect(x: midX, y: midY, width: maxX - midX, height: maxY - midY)),
-//        ]
-//        // 将现有点分配给子节点
-//        points.forEach { p in children?.forEach { $0.insert(p) } }
-//        points.removeAll()
-//    }
-//
-//    func query(in rect: CGRect) -> [Marker] {
-//        if !boundingBox.intersects(rect) { return [] }
-//        var result = points.filter {
-//            rect.contains(CGPoint(x: $0.coordinate.longitude, y: $0.coordinate.latitude))
-//        }
-//        children?.forEach { result.append(contentsOf: $0.query(in: rect)) }
-//        return result
-//    }
-//}
+class PaddedLabel: UILabel {
+    var padding: UIEdgeInsets = UIEdgeInsets(top: 2, left: 4, bottom: 2, right: 4)
+
+    override func drawText(in rect: CGRect) {
+        super.drawText(in: rect.inset(by: padding))
+    }
+
+    override var intrinsicContentSize: CGSize {
+        let size = super.intrinsicContentSize
+        return CGSize(
+            width: size.width + padding.left + padding.right,
+            height: size.height + padding.top + padding.bottom
+        )
+    }
+
+    override func sizeThatFits(_ size: CGSize) -> CGSize {
+        let originalSize = super.sizeThatFits(CGSize(width: size.width - padding.left - padding.right,
+                                                     height: size.height - padding.top - padding.bottom))
+        return CGSize(
+            width: originalSize.width + padding.left + padding.right,
+            height: originalSize.height + padding.top + padding.bottom
+        )
+    }
+}
+
+func markerChanges(old: Marker, new: Marker) -> [FieldChange] {
+    var changes: [FieldChange] = []
+    
+    if old.coordinate.latitude != new.coordinate.latitude || old.coordinate.longitude != new.coordinate.longitude {
+        changes.append(FieldChange(key: "coordinate", oldValue: old.coordinate, newValue: new.coordinate))
+    }
+    if old.title != new.title {
+        changes.append(FieldChange(key: "title", oldValue: old.title, newValue: new.title))
+    }
+    if old.subtitle != new.subtitle {
+        changes.append(FieldChange(key: "subtitle", oldValue: old.subtitle, newValue: new.subtitle))
+    }
+    if old.centerOffset?.x != new.centerOffset?.x || old.centerOffset?.y != new.centerOffset?.y {
+        changes.append(FieldChange(key: "centerOffset", oldValue: old.centerOffset, newValue: new.centerOffset))
+    }
+    if old.calloutOffset?.x != new.calloutOffset?.x || old.calloutOffset?.y != new.calloutOffset?.y {
+        changes.append(FieldChange(key: "calloutOffset", oldValue: old.calloutOffset, newValue: new.calloutOffset))
+    }
+    if old.textOffset?.x != new.textOffset?.x || old.textOffset?.y != new.textOffset?.y {
+        changes.append(FieldChange(key: "textOffset", oldValue: old.textOffset, newValue: new.textOffset))
+    }
+    if old.image?.url != new.image?.url || old.image?.size.width != new.image?.size.width || old.image?.size.height != new.image?.size.height {
+        changes.append(FieldChange(key: "image", oldValue: old.image, newValue: new.image))
+    }
+    if old.textStyle?.color != new.textStyle?.color || old.textStyle?.fontSize != new.textStyle?.fontSize || old.textStyle?.fontWeight != new.textStyle?.fontWeight || old.textStyle?.numberOfLines != new.textStyle?.numberOfLines || old.textStyle?.backgroundColor != new.textStyle?.backgroundColor || old.textStyle?.padding?.x != new.textStyle?.padding?.x || old.textStyle?.padding?.y != new.textStyle?.padding?.y {
+        changes.append(FieldChange(key: "textStyle", oldValue: old.textStyle, newValue: new.textStyle))
+    }
+    if old.pinColor != new.pinColor {
+        changes.append(FieldChange(key: "pinColor", oldValue: old.pinColor, newValue: new.pinColor))
+    }
+    if old.enabled != new.enabled {
+        changes.append(FieldChange(key: "enabled", oldValue: old.enabled, newValue: new.enabled))
+    }
+    if old.highlighted != new.highlighted {
+        changes.append(FieldChange(key: "highlighted", oldValue: old.highlighted, newValue: new.highlighted))
+    }
+    if old.canShowCallout != new.canShowCallout {
+        changes.append(FieldChange(key: "canShowCallout", oldValue: old.canShowCallout, newValue: new.canShowCallout))
+    }
+    if old.draggable != new.draggable {
+        changes.append(FieldChange(key: "draggable", oldValue: old.draggable, newValue: new.draggable))
+    }
+    if old.canAdjustPosition != new.canAdjustPosition {
+        changes.append(FieldChange(key: "canAdjustPosition", oldValue: old.canAdjustPosition, newValue: new.canAdjustPosition))
+    }
+    if old.extra?.province != new.extra?.province || old.extra?.district != new.extra?.district || old.extra?.city != new.extra?.city {
+        changes.append(FieldChange(key: "extra", oldValue: old.extra, newValue: new.extra))
+    }
+    
+    return changes
+}

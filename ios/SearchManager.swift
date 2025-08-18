@@ -271,12 +271,16 @@ extension SearchManager: AMapSearchDelegate {
         inputTipsSearchHandler.finishSuccess([
             "tips": response.tips.compactMap({ tip in
                 [
-                    "uid": tip.uid,
-                    "name": tip.name,
-                    "address": tip.address,
-                    "adcode": tip.adcode,
-                    "district": tip.district,
-                    "typecode": tip.typecode,
+                    "uid": tip.uid ?? "",
+                    "name": tip.name ?? "",
+                    "address": tip.address ?? "",
+                    "adcode": tip.adcode ?? "",
+                    "district": tip.district ?? "",
+                    "typecode": tip.typecode ?? "",
+                    "location": [
+                        "latitude": tip.location.latitude,
+                        "longitude": tip.location.longitude
+                    ]
                 ]
             }),
             "count": response.count,

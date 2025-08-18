@@ -109,15 +109,10 @@ public class ExpoAmapModule: Module {
         View(MapView.self) {
             Events("onLoad", "onZoom", "onRegionChanged", "onTapMarker")
 
-            Prop("region") { (view, region: Region) in
-                view.setRegion(region, animated: true)
-            }
-
             Prop("initialRegion") { (view, region: Region) in
-                guard !view.regionSetted else { return }
+                guard view.regionToSet == nil else { return }
 
-                view.setRegion(region, animated: false)
-                view.regionSetted = true
+                view.setInitialRegion(region)
             }
 
             Prop("limitedRegion") { (view, region: Region) in

@@ -147,6 +147,8 @@ export interface TextStyle {
     | '900'
   numberOfLines?: number // 限制行数，超出显示省略号
   offset?: { x: number; y: number } // 文字相对图片中心的偏移
+  padding?: { x: number; y: number }
+  backgroundColor?: string
 }
 
 /**
@@ -162,6 +164,13 @@ export interface MarkerData {
    */
   coordinate: Coordinate
   /**
+   * 标记点样式，默认为 pin
+   *
+   * pin -> 默认的大头针样式
+   * custom -> 自定义的 title + 图片 的样式
+   */
+  style?: 'pin' | 'custom'
+  /**
    * 标题
    */
   title?: string
@@ -169,17 +178,6 @@ export interface MarkerData {
    * 副标题
    */
   subtitle?: string
-  /**
-   * zIndex，默认为 0
-   */
-  zIndex?: number
-  /**
-   * 标记点图像
-   */
-  image?: {
-    url: string
-    size: { width: number; height: number }
-  }
   /**
    * 中心偏移量
    */
@@ -189,9 +187,24 @@ export interface MarkerData {
    */
   calloutOffset?: { x: number; y: number }
   /**
-   * 文本偏移
+   * 文本偏移，style 为 custom 时生效
    */
   textOffset?: { x: number; y: number }
+  /**
+   * 标记点图像，style 为 custom 时生效
+   */
+  image?: {
+    url: string
+    size: { width: number; height: number }
+  }
+  /**
+   * 文本样式，style 为 custom 时生效
+   */
+  textStyle?: TextStyle
+  /**
+   * 大头针颜色，style 为 pin 时生效
+   */
+  pinColor?: 'red' | 'green' | 'purple'
   /**
    * 是否启用触摸事件
    */
@@ -212,14 +225,6 @@ export interface MarkerData {
    * 弹出默认弹出框时，是否允许地图调整到合适位置来显示弹出框，默认为 true
    */
   canAdjustPosition?: boolean
-  /**
-   * 文本样式
-   */
-  textStyle?: TextStyle
-  /**
-   * 大头针颜色，只有在 image 为空时才生效
-   */
-  pinColor?: string
   /**
    * 额外信息
    */
@@ -305,10 +310,6 @@ export interface MapViewRef {
 
 export interface MapViewProps extends ViewProps {
   ref?: React.Ref<MapViewRef>
-  /**
-   * 地图显示的区域，该区域由中心坐标和显示的坐标范围定义
-   */
-  region?: Region
   /**
    * 地图显示的初始区域，非受控属性，在组件挂载后更改此属性不会导致区域变化
    */
