@@ -280,6 +280,7 @@ export interface OnRegionChangedEventPayload {
 export interface OnTapMarkerEventPayload {
   id: string
   point: { x: number; y: number }
+  coordinate: Coordinate
 }
 
 export interface MapViewRef {

@@ -3,6 +3,7 @@ import { View, Button } from 'react-native'
 import ExpoAmapModule, {
   MapView,
   Marker,
+  OnTapMarkerEventPayload,
   Polyline,
   type MapViewRef
 } from 'expo-amap'
@@ -151,6 +152,10 @@ async function handleSearchTransitRoute() {
 export default function App() {
   const mapViewRef = useRef<MapViewRef>(null)
 
+  const handleTapMarker = (event: { nativeEvent: OnTapMarkerEventPayload }) => {
+    mapViewRef.current?.setCenter(event.nativeEvent.coordinate)
+  }
+
   return (
     <View style={{ position: 'relative', flex: 1 }}>
       <MapView
@@ -174,21 +179,11 @@ export default function App() {
             { by: 'province', thresholdZoomLevel: 8 }
           ]
         }}
-        onLoad={(event) => {
-          console.log('🗺️ 地图加载成功:', event.nativeEvent)
-        }}
-        onZoom={(event) => {
-          console.log('🗺️ 地图缩放:', event.nativeEvent)
-        }}
-        onRegionChanged={(event) => {
-          console.log('🗺️ 地图区域变化:', event.nativeEvent)
-        }}
-        onTapMarker={(event) => {
-          console.log('🗺️ 地图点击标记:', event.nativeEvent)
-        }}
+        onTapMarker={handleTapMarker}
       >
         {examplePoints.map((point) => (
           <Marker
+            key={point.id}
             id={point.id}
             coordinate={{
               latitude: point.coordinate.latitude,

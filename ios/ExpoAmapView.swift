@@ -57,8 +57,12 @@ class MapView: ExpoView {
     // MARK: - 地图命令式方法
 
     func setInitialRegion(_ region: Region) {
+        guard regionToSet == nil else { return }
         regionToSet = region
-        mapView.setCenter(CLLocationCoordinate2D(latitude: region.center.latitude, longitude: region.center.longitude), animated: false)
+        mapView.setCenter(
+            CLLocationCoordinate2D(latitude: region.center.latitude, longitude: region.center.longitude),
+            animated: false
+        )
     }
 
     func setCenter(latitude: Double?, longitude: Double?, promise: Promise) {
@@ -77,7 +81,6 @@ class MapView: ExpoView {
             setCenterHandler.finishFailure(code: "1", message: "用户跟踪模式下无法设置中心点")
             return
         }
-
         let coordinate = CLLocationCoordinate2D(latitude: latitude, longitude: longitude)
         mapView.setCenter(coordinate, animated: true)
         setCenterHandler.finishSuccess(Void())
@@ -91,6 +94,7 @@ class MapView: ExpoView {
     }
 
     func setMarkers(_ markers: [Marker]) {
+        print("拿到 \(markers.count)个标记")
         markerManager.setMarkers(markers)
     }
 
@@ -134,7 +138,7 @@ extension MapView: MAMapViewDelegate {
             self.regionToSet = nil
         }
     }
-    
+
     // 请求位置权限回调
     func mapViewRequireLocationAuth(_ locationManager: CLLocationManager) {
         if CLLocationManager().authorizationStatus == .notDetermined {
@@ -181,7 +185,7 @@ extension MapView: MAMapViewDelegate {
             
             return view
         }
-        
+
         if let annotation = annotation as? SSAnnotation,
            let marker = markerManager.getMarker(id: annotation.id) {
             if marker.style == "custom" {
@@ -279,22 +283,29 @@ extension MapView: MAMapViewDelegate {
 
         return nil
     }
+    
+    func mapView(_ mapView: MAMapView!, didAddAnnotationViews views: [Any]!) {
+        switchAnnotationsVisibility()
+    }
 
     func mapView(_ mapView: MAMapView!, didAnnotationViewTapped view: MAAnnotationView!) {
         guard
             let view = view as? TextAnnotationView,
-            let annotation = view.annotation as? SSAnnotation,
-            let marker = markerManager.getMarker(id: annotation.id)
+            let annotation = view.annotation as? SSAnnotation
         else { return }
-
+        
         let point = mapView.convert(annotation.coordinate, toPointTo: mapView)
-
+        
         onTapMarker([
-            "id": marker.id,
+            "id": annotation.id,
             "point": [
                 "x": point.x,
                 "y": point.y,
             ],
+            "coordinate": [
+                "latitude": annotation.coordinate.latitude,
+                "longitude": annotation.coordinate.longitude
+            ]
         ])
     }
 
@@ -360,30 +371,32 @@ extension MapView: MAMapViewDelegate {
 
     func mapView(_ mapView: MAMapView!, mapDidZoomByUser wasUserAction: Bool) {
         onZoom(["zoomLevel": mapView.zoomLevel])
-        
+        switchAnnotationsVisibility()
+    }
+    
+    func switchAnnotationsVisibility() {
         guard let options = markerManager.regionClusteringOptions, options.enabled ?? false else { return }
         let zoom = mapView.zoomLevel
-        
+
         // 拿到所有 AnnotationView
         let allViews: [MAAnnotationView] = mapView.annotations.compactMap {
             mapView.view(for: $0 as? MAAnnotation)
         }
-        
+
         // 聚合点视图
         let clusterViews = allViews.compactMap { $0 as? TextAnnotationView }
             .filter { ($0.annotation as? ClusterAnnotation) != nil }
-        
         // 普通点视图
         let normalViews = allViews.compactMap { $0 as? TextAnnotationView }
             .filter { ($0.annotation as? SSAnnotation) != nil }
-        
+
         // 默认全部隐藏
         clusterViews.forEach { $0.isHidden = true }
         normalViews.forEach { $0.isHidden = true }
-        
+
         // 按 thresholdZoomLevel 从大到小排序（低层级的 zoom 阈值大）
         let sortedRules = options.rules.sorted { $0.thresholdZoomLevel > $1.thresholdZoomLevel }
-        
+
         // 找到最适合当前 zoom 的 rule
         var activeRule: RegionClusteringRule? = nil
         for rule in sortedRules {
@@ -391,7 +404,7 @@ extension MapView: MAMapViewDelegate {
                 activeRule = rule
             }
         }
-        
+
         if let rule = activeRule {
             // 显示当前层级的聚合点，普通点隐藏
             for view in clusterViews {

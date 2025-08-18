@@ -110,8 +110,6 @@ public class ExpoAmapModule: Module {
             Events("onLoad", "onZoom", "onRegionChanged", "onTapMarker")
 
             Prop("initialRegion") { (view, region: Region) in
-                guard view.regionToSet == nil else { return }
-
                 view.setInitialRegion(region)
             }
 
