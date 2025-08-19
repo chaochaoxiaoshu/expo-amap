@@ -167,9 +167,10 @@ export interface MarkerData {
    * 标记点样式，默认为 pin
    *
    * pin -> 默认的大头针样式
+   * teardrop -> 水滴样式
    * custom -> 自定义的 title + 图片 的样式
    */
-  style?: 'pin' | 'custom'
+  style?: 'pin' | 'teardrop' | 'custom'
   /**
    * 标题
    */
@@ -205,6 +206,18 @@ export interface MarkerData {
    * 大头针颜色，style 为 pin 时生效
    */
   pinColor?: 'red' | 'green' | 'purple'
+  /**
+   * 水滴样式标签，style 为 teardrop 时生效
+   */
+  teardropLabel?: string
+  /**
+   * 水滴随机颜色种子，style 为 teardrop 时生效
+   */
+  teardropRandomFillColorSeed?: string
+  /**
+   * 水滴颜色，优先级高于 teardropRandomFillColorSeed，style 为 teardrop 时生效
+   */
+  teardropFillColor?: string
   /**
    * 是否启用触摸事件
    */

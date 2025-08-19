@@ -13,7 +13,7 @@ class PolylineManager {
         guard let mapView = mapView else { return }
 
         self.polylines.removeAll()
-        mapView.removeOverlays(polylines)
+        mapView.removeOverlays(self.polylines)
         styles.removeAll()
 
         for (index, item) in polylines.enumerated() {

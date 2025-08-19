@@ -60,3 +60,55 @@ func diffItems<U>(
 
     return DiffResult(toAdd: toAdd, toUpdate: toUpdate, toRemove: toRemove)
 }
+
+func markerChanges(old: Marker, new: Marker) -> [FieldChange] {
+    var changes: [FieldChange] = []
+    
+    if old.coordinate.latitude != new.coordinate.latitude || old.coordinate.longitude != new.coordinate.longitude {
+        changes.append(FieldChange(key: "coordinate", oldValue: old.coordinate, newValue: new.coordinate))
+    }
+    if old.title != new.title {
+        changes.append(FieldChange(key: "title", oldValue: old.title, newValue: new.title))
+    }
+    if old.subtitle != new.subtitle {
+        changes.append(FieldChange(key: "subtitle", oldValue: old.subtitle, newValue: new.subtitle))
+    }
+    if old.centerOffset?.x != new.centerOffset?.x || old.centerOffset?.y != new.centerOffset?.y {
+        changes.append(FieldChange(key: "centerOffset", oldValue: old.centerOffset, newValue: new.centerOffset))
+    }
+    if old.calloutOffset?.x != new.calloutOffset?.x || old.calloutOffset?.y != new.calloutOffset?.y {
+        changes.append(FieldChange(key: "calloutOffset", oldValue: old.calloutOffset, newValue: new.calloutOffset))
+    }
+    if old.textOffset?.x != new.textOffset?.x || old.textOffset?.y != new.textOffset?.y {
+        changes.append(FieldChange(key: "textOffset", oldValue: old.textOffset, newValue: new.textOffset))
+    }
+    if old.image?.url != new.image?.url || old.image?.size.width != new.image?.size.width || old.image?.size.height != new.image?.size.height {
+        changes.append(FieldChange(key: "image", oldValue: old.image, newValue: new.image))
+    }
+    if old.textStyle?.color != new.textStyle?.color || old.textStyle?.fontSize != new.textStyle?.fontSize || old.textStyle?.fontWeight != new.textStyle?.fontWeight || old.textStyle?.numberOfLines != new.textStyle?.numberOfLines || old.textStyle?.backgroundColor != new.textStyle?.backgroundColor || old.textStyle?.padding?.x != new.textStyle?.padding?.x || old.textStyle?.padding?.y != new.textStyle?.padding?.y {
+        changes.append(FieldChange(key: "textStyle", oldValue: old.textStyle, newValue: new.textStyle))
+    }
+    if old.pinColor != new.pinColor {
+        changes.append(FieldChange(key: "pinColor", oldValue: old.pinColor, newValue: new.pinColor))
+    }
+    if old.enabled != new.enabled {
+        changes.append(FieldChange(key: "enabled", oldValue: old.enabled, newValue: new.enabled))
+    }
+    if old.highlighted != new.highlighted {
+        changes.append(FieldChange(key: "highlighted", oldValue: old.highlighted, newValue: new.highlighted))
+    }
+    if old.canShowCallout != new.canShowCallout {
+        changes.append(FieldChange(key: "canShowCallout", oldValue: old.canShowCallout, newValue: new.canShowCallout))
+    }
+    if old.draggable != new.draggable {
+        changes.append(FieldChange(key: "draggable", oldValue: old.draggable, newValue: new.draggable))
+    }
+    if old.canAdjustPosition != new.canAdjustPosition {
+        changes.append(FieldChange(key: "canAdjustPosition", oldValue: old.canAdjustPosition, newValue: new.canAdjustPosition))
+    }
+    if old.extra?.province != new.extra?.province || old.extra?.district != new.extra?.district || old.extra?.city != new.extra?.city {
+        changes.append(FieldChange(key: "extra", oldValue: old.extra, newValue: new.extra))
+    }
+    
+    return changes
+}

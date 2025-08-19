@@ -126,7 +126,7 @@ class MapView: ExpoView {
     func setRegionClusteringOptions(_ options: RegionClusteringOptions?) {
         guard let options = options else { return }
 
-        self.markerManager.setRegionClusteringOptions(options)
+        markerManager.setRegionClusteringOptions(options)
     }
 }
 
@@ -186,7 +186,7 @@ extension MapView: MAMapViewDelegate {
             return view
         }
 
-        if let annotation = annotation as? SSAnnotation,
+        if let annotation = annotation as? MyAnnotation,
            let marker = markerManager.getMarker(id: annotation.id) {
             if marker.style == "custom" {
                 let reuseId = "TextAnnotationView"
@@ -278,6 +278,30 @@ extension MapView: MAMapViewDelegate {
                 }
 
                 return view
+            } else if marker.style == "teardrop" {
+                let reuseId = "TeardropAnnotationView"
+                var view =
+                    mapView.dequeueReusableAnnotationView(withIdentifier: reuseId)
+                    as? TeardropAnnotationView
+                if view == nil {
+                    view = TeardropAnnotationView(annotation: annotation, reuseIdentifier: reuseId)
+                } else {
+                    view?.annotation = annotation
+                }
+
+                if let label = marker.teardropLabel {
+                    view?.label = label
+                }
+                if let seed = marker.teardropRandomFillColorSeed {
+                    view?.teardrop.fillColor = UIColor.random(seed: seed)
+                } else {
+                    view?.teardrop.fillColor = UIColor(hex: "#5981D8")
+                }
+                if let color = marker.teardropFillColor {
+                    view?.teardrop.fillColor = UIColor(hex: color)
+                }
+                
+                return view
             }
         }
 
@@ -290,8 +314,8 @@ extension MapView: MAMapViewDelegate {
 
     func mapView(_ mapView: MAMapView!, didAnnotationViewTapped view: MAAnnotationView!) {
         guard
-            let view = view as? TextAnnotationView,
-            let annotation = view.annotation as? SSAnnotation
+            let view = view,
+            let annotation = view.annotation as? MyAnnotation
         else { return }
         
         let point = mapView.convert(annotation.coordinate, toPointTo: mapView)
@@ -384,11 +408,11 @@ extension MapView: MAMapViewDelegate {
         }
 
         // 聚合点视图
-        let clusterViews = allViews.compactMap { $0 as? TextAnnotationView }
+        let clusterViews = allViews
             .filter { ($0.annotation as? ClusterAnnotation) != nil }
         // 普通点视图
-        let normalViews = allViews.compactMap { $0 as? TextAnnotationView }
-            .filter { ($0.annotation as? SSAnnotation) != nil }
+        let normalViews = allViews
+            .filter { ($0.annotation as? MyAnnotation) != nil }
 
         // 默认全部隐藏
         clusterViews.forEach { $0.isHidden = true }

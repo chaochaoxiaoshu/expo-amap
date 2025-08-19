@@ -21,9 +21,11 @@ type WrapperProps = Omit<MapViewProps, 'markers' | 'polylines'>
 export default forwardRef<MapViewRef, WrapperProps>(
   function MapView(props, ref) {
     const { children, ...restProps } = props
+
     const markers = Children.toArray(children)
       .filter((child) => componentIs(child, Marker))
       .map((child) => child.props) as MarkerProps[]
+
     const polylines = Children.toArray(children)
       .filter((child) => componentIs(child, Polyline))
       .map((child) => child.props) as PolylineProps[]
@@ -44,12 +46,14 @@ export default forwardRef<MapViewRef, WrapperProps>(
     )
 
     return (
-      <NativeView
-        ref={nativeRef}
-        {...restProps}
-        markers={markers}
-        polylines={polylines}
-      />
+      <>
+        <NativeView
+          ref={nativeRef}
+          {...restProps}
+          markers={markers}
+          polylines={polylines}
+        />
+      </>
     )
   }
 )

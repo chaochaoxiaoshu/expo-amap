@@ -1,8 +1,13 @@
 import AMapSearchKit
+import CryptoKit
 import ExpoModulesCore
 import UIKit
 
-// MARK: - Extensions
+struct OKLCH {
+    var l: Double
+    var c: Double
+    var h: Double
+}
 
 extension UIColor {
     convenience init(hex: String) {
@@ -29,6 +34,51 @@ extension UIColor {
         } else {
             self.init(white: 0, alpha: 1)
         }
+    }
+    
+    /// 根据 OKLCH 创建 UIColor（兼容 iOS 15）
+    static func fromOKLCH(_ oklch: OKLCH, alpha: CGFloat = 1.0) -> UIColor {
+        // 1. OKLCH -> OKLab
+        let hRad = oklch.h * Double.pi / 180
+        let a = oklch.c * cos(hRad)
+        let b = oklch.c * sin(hRad)
+        let l = oklch.l
+        
+        // 2. OKLab -> Linear sRGB
+        let l_ = l + 0.3963377774 * a + 0.2158037573 * b
+        let m_ = l - 0.1055613458 * a - 0.0638541728 * b
+        let s_ = l - 0.0894841775 * a - 1.2914855480 * b
+        
+        func cube(_ x: Double) -> Double { x * x * x }
+        func f(_ x: Double) -> Double { cube(x) }
+        
+        var r1 =  4.0767416621 * f(l_) - 3.3077115913 * f(m_) + 0.2309699292 * f(s_)
+        var g1 = -1.2684380046 * f(l_) + 2.6097574011 * f(m_) - 0.3413193965 * f(s_)
+        var b1 = -0.0041960863 * f(l_) - 0.7034186147 * f(m_) + 1.7076147010 * f(s_)
+        
+        // 3. Linear sRGB -> sRGB
+        func linearToSRGB(_ x: Double) -> CGFloat {
+            if x <= 0.0031308 { return CGFloat(max(0, x * 12.92)) }
+            return CGFloat(min(1, 1.055 * pow(x, 1/2.4) - 0.055))
+        }
+        
+        return UIColor(
+            red: linearToSRGB(r1),
+            green: linearToSRGB(g1),
+            blue: linearToSRGB(b1),
+            alpha: alpha
+        )
+    }
+    
+    /// 根据字符串生成固定亮度/饱和度的 OKLCH 颜色
+    static func random(seed: String, lightness: Double = 0.7, chroma: Double = 0.2, alpha: CGFloat = 1.0) -> UIColor {
+        let hash = SHA256.hash(data: Data(seed.utf8))
+        let value = hash.withUnsafeBytes { ptr -> UInt64 in
+            return ptr.load(as: UInt64.self)
+        }
+        let hue = Double(value % 360)
+        let oklch = OKLCH(l: lightness, c: chroma, h: hue)
+        return UIColor.fromOKLCH(oklch, alpha: alpha)
     }
 }
 
