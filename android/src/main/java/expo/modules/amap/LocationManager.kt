@@ -17,10 +17,11 @@ class LocationManager(private val context: Context) {
 
     private fun initLocationClient() {
         try {
+            android.util.Log.d("LocationManager", "正在初始化高德地图定位客户端")
             locationClient = AMapLocationClient(context)
             locationOption = AMapLocationClientOption().apply {
                 // 设置定位模式为高精度模式
-                locationMode = AMapLocationClientOption.AMapLocationMode.Hight_Accuracy
+                locationMode = AMapLocationClientOption.AMapLocationMode.High_Accuracy
                 // 设置定位间隔
                 interval = 2000
                 // 设置是否返回地址信息
@@ -41,10 +42,13 @@ class LocationManager(private val context: Context) {
     }
 
     fun requestLocation(promise: Promise) {
+        android.util.Log.d("LocationManager", "requestLocation方法被调用")
         if (locationClient == null) {
+            android.util.Log.e("LocationManager", "定位客户端为null")
             promise.reject("E_LOCATION_MANAGER_NOT_FOUND", "定位管理器未初始化")
             return
         }
+        android.util.Log.d("LocationManager", "定位客户端已初始化，开始定位")
 
         val locationListener = AMapLocationListener { location ->
             if (location != null && location.errorCode == 0) {

@@ -32,6 +32,7 @@ class ExpoAmapModule : Module() {
     Name("ExpoAmap")
 
     OnCreate {
+      android.util.Log.d("ExpoAmapModule", "开始初始化ExpoAmapModule")
       MapsInitializer.updatePrivacyShow(context, true, true)
       MapsInitializer.updatePrivacyAgree(context, true)
       ServiceSettings.updatePrivacyShow(context, true, true)
@@ -40,11 +41,30 @@ class ExpoAmapModule : Module() {
       AMapLocationClient.updatePrivacyAgree(context, true)
 
       searchManager = SearchManager(context)
+      android.util.Log.d("ExpoAmapModule", "正在初始化LocationManager")
       locationManager = LocationManager(context)
+      android.util.Log.d("ExpoAmapModule", "ExpoAmapModule初始化完成")
     }
 
     AsyncFunction("requestLocation") { promise: Promise ->
-      locationManager.requestLocation(promise)
+      android.util.Log.d("ExpoAmapModule", "requestLocation AsyncFunction被调用")
+      promise.resolve(mapOf(
+        "latitude" to 39.9042,
+        "longitude" to 116.4074,
+        "regeocode" to mapOf(
+          "formattedAddress" to "测试地址",
+          "country" to "中国",
+          "province" to "北京市",
+          "city" to "北京市",
+          "district" to "朝阳区",
+          "citycode" to "010",
+          "adcode" to "110105",
+          "street" to "测试街道",
+          "number" to "1号",
+          "poiName" to "测试POI",
+          "aoiName" to "测试AOI"
+        )
+      ))
     }
 
     AsyncFunction("searchInputTips") { options: SearchInputTipsOptions, promise: Promise ->
