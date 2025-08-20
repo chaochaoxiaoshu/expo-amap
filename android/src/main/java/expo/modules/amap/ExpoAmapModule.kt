@@ -26,6 +26,7 @@ class ExpoAmapModule : Module() {
     get() = appContext.reactContext ?: throw Exceptions.ReactContextLost()
 
   private lateinit var searchManager: SearchManager
+  private lateinit var locationManager: LocationManager
 
   override fun definition() = ModuleDefinition {
     Name("ExpoAmap")
@@ -39,6 +40,11 @@ class ExpoAmapModule : Module() {
       AMapLocationClient.updatePrivacyAgree(context, true)
 
       searchManager = SearchManager(context)
+      locationManager = LocationManager(context)
+    }
+
+    AsyncFunction("requestLocation") { promise: Promise ->
+      locationManager.requestLocation(promise)
     }
 
     AsyncFunction("searchInputTips") { options: SearchInputTipsOptions, promise: Promise ->
