@@ -91,6 +91,18 @@ func markerChanges(old: Marker, new: Marker) -> [FieldChange] {
     if old.pinColor != new.pinColor {
         changes.append(FieldChange(key: "pinColor", oldValue: old.pinColor, newValue: new.pinColor))
     }
+    if old.teardropLabel != new.teardropLabel {
+        changes.append(FieldChange(key: "teardropLabel", oldValue: old.teardropLabel, newValue: new.teardropLabel))
+    }
+    if old.teardropRandomFillColorSeed != new.teardropRandomFillColorSeed {
+        changes.append(FieldChange(key: "teardropRandomFillColorSeed", oldValue: old.teardropRandomFillColorSeed, newValue: new.teardropRandomFillColorSeed))
+    }
+    if old.teardropFillColor != new.teardropFillColor {
+        changes.append(FieldChange(key: "teardropFillColor", oldValue: old.teardropFillColor, newValue: new.teardropFillColor))
+    }
+    if old.teardropInfoText != new.teardropInfoText {
+        changes.append(FieldChange(key: "teardropInfoText", oldValue: old.teardropInfoText, newValue: new.teardropInfoText))
+    }
     if old.enabled != new.enabled {
         changes.append(FieldChange(key: "enabled", oldValue: old.enabled, newValue: new.enabled))
     }

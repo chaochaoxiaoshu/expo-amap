@@ -79,13 +79,13 @@ struct Marker: Record {
     @Field var teardropLabel: String?
     @Field var teardropRandomFillColorSeed: String?
     @Field var teardropFillColor: String?
+    @Field var teardropInfoText: String?
     @Field var enabled: Bool?
     @Field var highlighted: Bool?
     @Field var canShowCallout: Bool?
     @Field var draggable: Bool?
     @Field var canAdjustPosition: Bool?
     @Field var extra: MarkerExtra?
-    @Field var customCalloutViewTag: Int?
 }
 
 struct CustomStyle: Record {

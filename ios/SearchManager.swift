@@ -270,7 +270,18 @@ extension SearchManager: AMapSearchDelegate {
 
         inputTipsSearchHandler.finishSuccess([
             "tips": response.tips.compactMap({ tip in
-                [
+                if (tip.location == nil) {
+                    return [
+                        "uid": tip.uid ?? "",
+                        "name": tip.name ?? "",
+                        "address": tip.address ?? "",
+                        "adcode": tip.adcode ?? "",
+                        "district": tip.district ?? "",
+                        "typecode": tip.typecode ?? "",
+                        "location": [:]
+                    ]
+                }
+                return [
                     "uid": tip.uid ?? "",
                     "name": tip.name ?? "",
                     "address": tip.address ?? "",

@@ -21,11 +21,6 @@ class MarkerManager {
     }
 
     func setMarkers(_ markers: [Marker]) {
-        for marker in markers {
-            if let tag = marker.customCalloutViewTag {
-                print(tag)
-            }
-        }
         let oldMarkers = self.markers
         self.markers = markers
         applyDiff(old: oldMarkers, new: markers)
@@ -158,6 +153,11 @@ class MarkerManager {
                 if change.key == "teardropFillColor", let newValue = change.newValue as? String {
                     view.teardrop.fillColor = UIColor(hex: newValue)
                 }
+                if change.key == "teardropInfoText", let newValue = change.newValue as? String {
+                    view.infoText = newValue
+                } else {
+                    view.infoText = nil
+                }
             }
         }
     }
@@ -171,10 +171,8 @@ class MarkerManager {
         guard let options = regionClusteringOptions, options.enabled ?? false else { return }
         guard let mapView = mapView else { return }
 
-        // 获取已有 clusterAnnotations
-        var existingClusters = Dictionary(
-            uniqueKeysWithValues: mapView.annotations.compactMap { $0 as? ClusterAnnotation }.map { ($0.id, $0) }
-        )
+        let oldClusters = mapView.annotations.compactMap { $0 as? ClusterAnnotation }
+        mapView.removeAnnotations(oldClusters)
 
         for rule in options.rules {
             // 按分组字段分组
@@ -199,35 +197,17 @@ class MarkerManager {
                 let lon = markersInRegion.map { $0.coordinate.longitude }.reduce(0, +) / Double(markersInRegion.count)
 
                 let clusterId = "\(rule.by)_\(regionId)"
-                if let existing = existingClusters[clusterId] {
-                    // 平滑更新 title/count/coordinate
-                    existing.coordinate = CLLocationCoordinate2D(latitude: lat, longitude: lon)
-                    existing.title = "\(regionId) \(markersInRegion.count)"
-                    existing.count = markersInRegion.count
-                    existing.by = rule.by
-                    
-                    if let view = mapView.view(for: existing) as? TextAnnotationView {
-                        view.setText(existing.title)
-                    }
-                    // 移除已处理的 annotation
-                    existingClusters.removeValue(forKey: clusterId)
-                } else {
-                    // 新增 clusterAnnotation
-                    let annotation = ClusterAnnotation(
-                        id: clusterId,
-                        coordinate: CLLocationCoordinate2D(latitude: lat, longitude: lon),
-                        title: "\(regionId) \(markersInRegion.count)",
-                        subtitle: "",
-                        count: markersInRegion.count,
-                        by: rule.by
-                    )
-                    mapView.addAnnotation(annotation)
-                }
+                let annotation = ClusterAnnotation(
+                    id: clusterId,
+                    coordinate: CLLocationCoordinate2D(latitude: lat, longitude: lon),
+                    title: "\(regionId) \(markersInRegion.count)",
+                    subtitle: "",
+                    count: markersInRegion.count,
+                    by: rule.by
+                )
+                mapView.addAnnotation(annotation)
             }
         }
-
-        // 移除不再存在的 clusterAnnotation
-        mapView.removeAnnotations(existingClusters.values.map { $0 })
     }
 }
 

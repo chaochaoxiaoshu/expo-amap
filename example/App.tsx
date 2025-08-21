@@ -1,7 +1,6 @@
 import { useRef } from 'react'
-import { View, Text, Button } from 'react-native'
+import { View, Button } from 'react-native'
 import ExpoAmapModule, {
-  Callout,
   MapView,
   Marker,
   OnTapMarkerEventPayload,
@@ -60,6 +59,50 @@ const examplePoints = [
   coordinate: { latitude: number; longitude: number }
 }[]
 
+const examplePoints2 = [
+  {
+    id: '7',
+    city: '太原市',
+    district: '晋源区',
+    coordinate: { latitude: 37.786966, longitude: 112.513013 }
+  },
+  {
+    id: '8',
+    city: '太原市',
+    district: '晋源区',
+    coordinate: { latitude: 37.786107, longitude: 112.529844 }
+  },
+  {
+    id: '9',
+    city: '太原市',
+    district: '晋源区',
+    coordinate: { latitude: 37.77422, longitude: 112.501958 }
+  },
+  {
+    id: '10',
+    city: '太原市',
+    district: '迎泽区',
+    coordinate: { latitude: 37.853557, longitude: 112.561243 }
+  },
+  {
+    id: '11',
+    city: '太原市',
+    district: '迎泽区',
+    coordinate: { latitude: 37.860537, longitude: 112.588152 }
+  },
+  {
+    id: '12',
+    city: '太原市',
+    district: '迎泽区',
+    coordinate: { latitude: 37.870497, longitude: 112.551922 }
+  }
+] satisfies {
+  id: string
+  city: string
+  district: string
+  coordinate: { latitude: number; longitude: number }
+}[]
+
 async function getLocation() {
   const location = await ExpoAmapModule.requestLocation()
   console.log('location', location)
@@ -93,8 +136,8 @@ async function handleSearchReGeocode() {
 async function handleSearchInputTips() {
   try {
     const result = await ExpoAmapModule.searchInputTips({
-      keywords: '方圆大厦',
-      city: '024'
+      keywords: '重庆',
+      city: '023'
     })
     console.log('input tips result', result)
   } catch (error) {
@@ -131,8 +174,8 @@ async function handleSearchWalkingRoute() {
 async function handleSearchRidingRoute() {
   try {
     const result = await ExpoAmapModule.searchRidingRoute({
-      origin: { latitude: 37.824491, longitude: 112.588325 },
-      destination: { latitude: 37.807604, longitude: 112.528623 },
+      origin: { latitude: 37.872547, longitude: 112.519398 },
+      destination: { latitude: 37.844896, longitude: 112.596609 },
       showFieldType: 'polyline'
     })
     console.log('🚲 骑行路线规划结果:', result)
@@ -202,6 +245,7 @@ export default function App() {
             enabled
             style='teardrop'
             teardropRandomFillColorSeed={point.id}
+            teardropInfoText='10:30'
             extra={{
               province: '山西省',
               city: point.city,

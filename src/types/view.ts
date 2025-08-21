@@ -219,6 +219,10 @@ export interface MarkerData {
    */
   teardropFillColor?: string
   /**
+   * 水滴上方胶囊视图中的文本，style 为 teardrop 时生效
+   */
+  teardropInfoText?: string
+  /**
    * 是否启用触摸事件
    */
   enabled?: boolean

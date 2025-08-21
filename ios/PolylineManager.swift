@@ -12,8 +12,8 @@ class PolylineManager {
     func setPolylines(_ polylines: [Polyline]) {
         guard let mapView = mapView else { return }
 
-        self.polylines.removeAll()
         mapView.removeOverlays(self.polylines)
+        self.polylines.removeAll()
         styles.removeAll()
 
         for (index, item) in polylines.enumerated() {

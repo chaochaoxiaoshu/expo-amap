@@ -300,6 +300,9 @@ extension MapView: MAMapViewDelegate {
                 if let color = marker.teardropFillColor {
                     view?.teardrop.fillColor = UIColor(hex: color)
                 }
+                if let infoText = marker.teardropInfoText {
+                    view?.infoText = infoText
+                }
                 
                 return view
             }
@@ -337,6 +340,7 @@ extension MapView: MAMapViewDelegate {
     func mapView(_ mapView: MAMapView!, rendererFor overlay: MAOverlay!) -> MAOverlayRenderer! {
         if overlay is MAPolyline {
             let renderer: MAPolylineRenderer = MAPolylineRenderer(overlay: overlay)
+            renderer.userInteractionEnabled = true
             if let style = polylineManager.styleForPolyline(overlay as! MAPolyline) {
                 if let fillColor = style.fillColor {
                     renderer.fillColor = UIColor(hex: fillColor)
@@ -397,7 +401,7 @@ extension MapView: MAMapViewDelegate {
         onZoom(["zoomLevel": mapView.zoomLevel])
         switchAnnotationsVisibility()
     }
-    
+
     func switchAnnotationsVisibility() {
         guard let options = markerManager.regionClusteringOptions, options.enabled ?? false else { return }
         let zoom = mapView.zoomLevel
