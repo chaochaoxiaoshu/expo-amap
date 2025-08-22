@@ -1,10 +1,12 @@
 package expo.modules.amap
 
 import android.content.Context
+import androidx.lifecycle.DefaultLifecycleObserver
 import androidx.lifecycle.LifecycleOwner
 import com.amap.api.maps.AMap
 import com.amap.api.maps.CameraUpdateFactory
 import com.amap.api.maps.MapView
+import com.amap.api.maps.model.CameraPosition
 import com.amap.api.maps.model.CustomMapStyleOptions
 import com.amap.api.maps.model.LatLng
 import com.amap.api.maps.model.LatLngBounds
@@ -18,18 +20,18 @@ import expo.modules.kotlin.AppContext
 import expo.modules.kotlin.Promise
 import expo.modules.kotlin.viewevent.EventDispatcher
 import expo.modules.kotlin.views.ExpoView
-import androidx.lifecycle.DefaultLifecycleObserver
-import com.amap.api.maps.model.CameraPosition
 
 class ExpoAmapView(context: Context, appContext: AppContext) : ExpoView(context, appContext) {
 
   private var polylineManager: PolylineManager
+  private var markerManager: MarkerManager
 
-  val mapView = MapView(context).apply {
-    layoutParams = LayoutParams(LayoutParams.MATCH_PARENT, LayoutParams.MATCH_PARENT)
-  }
+  val mapView =
+          MapView(context).apply {
+            layoutParams = LayoutParams(LayoutParams.MATCH_PARENT, LayoutParams.MATCH_PARENT)
+          }
 
-  var regionSetted = false
+  var regionToSet: Region? = null
 
   private val onLoad by EventDispatcher()
   private val onZoom by EventDispatcher()
@@ -38,54 +40,69 @@ class ExpoAmapView(context: Context, appContext: AppContext) : ExpoView(context,
   init {
     addView(mapView)
     mapView.onCreate(null)
+    mapView.onResume()
     polylineManager = PolylineManager(mapView.map, context)
+    markerManager = MarkerManager(mapView.map, context)
     setListeners()
 
-    onLoad(mapOf(
-      "message" to "Map loaded successfully",
-      "timestamp" to System.currentTimeMillis(),
-    ))
+    mapView.map?.let { amap -> regionToSet?.let { region -> setRegion(region) } }
   }
 
   private fun setListeners() {
     val activity = appContext.currentActivity
     if (activity is LifecycleOwner) {
       val lifecycleOwner = activity as LifecycleOwner
-      lifecycleOwner.lifecycle.addObserver(object : DefaultLifecycleObserver {
-        override fun onResume(owner: LifecycleOwner) {
-          mapView.onResume()
-        }
-        override fun onPause(owner: LifecycleOwner) {
-          mapView.onPause()
-        }
-        override fun onDestroy(owner: LifecycleOwner) {
-          mapView.onDestroy()
-        }
-      })
+      lifecycleOwner.lifecycle.addObserver(
+              object : DefaultLifecycleObserver {
+                override fun onResume(owner: LifecycleOwner) {
+                  mapView.onResume()
+                }
+                override fun onPause(owner: LifecycleOwner) {
+                  mapView.onPause()
+                }
+                override fun onDestroy(owner: LifecycleOwner) {
+                  mapView.onDestroy()
+                }
+              }
+      )
     }
 
-    mapView.map?.setOnCameraChangeListener(object: AMap.OnCameraChangeListener {
-      override fun onCameraChange(p0: CameraPosition?) {
-      }
-      override fun onCameraChangeFinish(p0: CameraPosition?) {
-        onZoom(mapOf(
-          "zoomLevel" to (p0?.zoom ?: 0)
-        ))
-      //  onRegionChanged(Utils.mapCameraPositionToRegion(p0))
-      }
-    })
+    mapView.map?.setOnCameraChangeListener(
+            object : AMap.OnCameraChangeListener {
+              override fun onCameraChange(p0: CameraPosition?) {}
+              override fun onCameraChangeFinish(p0: CameraPosition?) {
+                onZoom(mapOf("zoomLevel" to (p0?.zoom ?: 0)))
+                //  onRegionChanged(Utils.mapCameraPositionToRegion(p0))
+                p0?.zoom?.let { markerManager.switchMarkersVisibility(it) }
+              }
+            }
+    )
+    mapView.map?.setOnMapLoadedListener {
+      onLoad(
+              mapOf(
+                      "message" to "Map loaded successfully",
+                      "timestamp" to System.currentTimeMillis(),
+              )
+      )
+      regionToSet?.let { setRegion(it) }
+    }
     //    mapView.map?.setOnMarkerClickListener { marker ->
     //
     //    }
   }
 
-  fun setRegion(region: Region) {
-    val width = mapView.width.takeIf { it > 0 } ?: 1080  // 默认宽度
-    val height = mapView.height.takeIf { it > 0 } ?: 1920 // 默认高度
-    val zoomLevel = Utils.regionToZoomLevel(region, width, height)
-    val latLng = LatLng(region.center.latitude, region.center.longitude)
-    val cameraUpdate = CameraUpdateFactory.newLatLngZoom(latLng, zoomLevel)
-    mapView.map?.moveCamera(cameraUpdate)
+  fun setInitialRegion(region: Region) {
+    if (regionToSet != null) {
+      return
+    }
+    regionToSet = region
+    mapView.map?.let { _ -> setRegion(region) }
+  }
+
+  private fun setRegion(region: Region) {
+    val amap = mapView.map ?: return
+    val bounds = regionToLatLngBounds(region)
+    amap.moveCamera(CameraUpdateFactory.newLatLngBounds(bounds, 0))
   }
 
   private fun regionToLatLngBounds(region: Region): LatLngBounds {
@@ -124,7 +141,7 @@ class ExpoAmapView(context: Context, appContext: AppContext) : ExpoView(context,
   }
 
   fun setMarkers(markers: Array<Marker>) {
-
+    markerManager.setMarkers(markers)
   }
 
   fun setPolylines(polylines: Array<Polyline>) {
@@ -138,12 +155,8 @@ class ExpoAmapView(context: Context, appContext: AppContext) : ExpoView(context,
       if (style.enabled) {
         val options = CustomMapStyleOptions()
 
-        style.styleData?.let { data ->
-          options.styleData = data
-        }
-        style.styleExtraData?.let { extra ->
-          options.styleExtraData = extra
-        }
+        style.styleData?.let { data -> options.styleData = data }
+        style.styleExtraData?.let { extra -> options.styleExtraData = extra }
 
         amap.setCustomMapStyle(options)
       } else {
@@ -163,7 +176,7 @@ class ExpoAmapView(context: Context, appContext: AppContext) : ExpoView(context,
   }
 
   fun setRegionClusteringOptions(options: RegionClusteringOptions) {
-
+    markerManager.updateRegionClusteringOptions(options)
   }
 
   fun setCenter(centerCoordinate: Map<String, Double>, promise: Promise) {

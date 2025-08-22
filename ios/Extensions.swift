@@ -167,7 +167,8 @@ class Utils {
                     "distance": Double(path.distance),
                     "duration": Double(path.duration),
                     "stepCount": path.steps.count,
-                    "polyline": path.polyline ?? "",
+                    // 将形如 "lon,lat;lon,lat;..." 的字符串格式化为坐标数组
+                    "polyline": Utils.parsePolyline(path.polyline),
                 ]
                 pathsArray.append(pathData)
             }
@@ -199,5 +200,22 @@ class Utils {
         }
 
         return routeData
+    }
+
+    /// 将 "lon,lat;lon,lat;..." 解析为 [{ latitude, longitude }]
+    static func parsePolyline(_ polyline: String?) -> [[String: Double]] {
+        guard let s = polyline, !s.isEmpty else { return [] }
+        return s
+            .split(separator: ";")
+            .compactMap { pair -> [String: Double]? in
+                let parts = pair.split(separator: ",")
+                guard parts.count >= 2,
+                      let lon = Double(parts[0]),
+                      let lat = Double(parts[1]) else { return nil }
+                return [
+                    "latitude": lat,
+                    "longitude": lon,
+                ]
+            }
     }
 }

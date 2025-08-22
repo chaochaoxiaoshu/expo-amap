@@ -46,6 +46,8 @@ class TextStyle: Record {
     @Field var fontSize: Double? = null
     @Field var fontWeight: String? = null
     @Field var numberOfLines: Int? = null
+    @Field var padding: Point? = null
+    @Field var backgroundColor: String? = null
 }
 
 class MarkerImage: Record {
@@ -62,20 +64,24 @@ class MarkerExtra: Record {
 class Marker: Record {
     @Field var id: String = ""
     @Field var coordinate: Coordinate = Coordinate()
+    @Field var style: String? = null
     @Field var title: String? = null
     @Field var subtitle: String? = null
-    @Field var zIndex: Int? = null
-    @Field var image: MarkerImage? = null
     @Field var centerOffset: Point? = null
     @Field var calloutOffset: Point? = null
     @Field var textOffset: Point? = null
+    @Field var image: MarkerImage? = null
+    @Field var textStyle: TextStyle? = null
+    @Field var pinColor: Int? = null
+    @Field var teardropLabel: String? = null
+    @Field var teardropRandomFillColorSeed: String? = null
+    @Field var teardropFillColor: String? = null
+    @Field var teardropInfoText: String? = null
     @Field var enabled: Boolean? = null
     @Field var highlighted: Boolean? = null
     @Field var canShowCallout: Boolean? = null
     @Field var draggable: Boolean? = null
     @Field var canAdjustPosition: Boolean? = null
-    @Field var textStyle: TextStyle? = null
-    @Field var pinColor: Int? = null
     @Field var extra: MarkerExtra? = null
 }
 

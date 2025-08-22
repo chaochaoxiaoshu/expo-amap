@@ -1,6 +1,6 @@
 {
   "name": "expo-amap",
-  "version": "0.1.7",
+  "version": "0.1.8",
   "description": "在 Expo app 中使用高德地图原生SDK",
   "main": "build/index.js",
   "types": "build/index.d.ts",

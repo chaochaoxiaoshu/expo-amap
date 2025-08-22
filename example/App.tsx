@@ -1,5 +1,5 @@
-import { useRef, useState } from 'react'
-import { View, Button } from 'react-native'
+import { useRef } from 'react'
+import { View, Button, PermissionsAndroid, Platform } from 'react-native'
 import ExpoAmapModule, {
   MapView,
   Marker,
@@ -59,7 +59,27 @@ const examplePoints = [
   coordinate: { latitude: number; longitude: number }
 }[]
 
+async function ensureLocationPermission() {
+  if (Platform.OS !== 'android') return true
+  const result = await PermissionsAndroid.requestMultiple([
+    PermissionsAndroid.PERMISSIONS.ACCESS_FINE_LOCATION,
+    PermissionsAndroid.PERMISSIONS.ACCESS_COARSE_LOCATION
+  ])
+  const fine =
+    result[PermissionsAndroid.PERMISSIONS.ACCESS_FINE_LOCATION] ===
+    PermissionsAndroid.RESULTS.GRANTED
+  const coarse =
+    result[PermissionsAndroid.PERMISSIONS.ACCESS_COARSE_LOCATION] ===
+    PermissionsAndroid.RESULTS.GRANTED
+  return fine || coarse
+}
+
 async function getLocation() {
+  const ok = await ensureLocationPermission()
+  if (!ok) {
+    console.warn('定位权限未授权')
+    return
+  }
   const location = await ExpoAmapModule.requestLocation()
   console.log('location', location)
 }
@@ -109,6 +129,7 @@ async function handleSearchDrivingRoute() {
       showFieldType: 'polyline'
     })
     console.log('🚗 驾车路线规划结果:', result)
+    console.log(result?.route.paths?.[0].polyline)
   } catch (error) {
     console.log((error as Error).message)
   }
@@ -224,7 +245,7 @@ export default function App() {
           style={{
             lineWidth: 8,
             textureImage:
-              'https://qiniu.zdjt.com/shop/2025-08-21/dbb897dc6899adf24bafa6a902cb61a9.png'
+              'https://qiniu.zdjt.com/shop/2025-08-22/90d820f83205d5fcda3415b13d0d7364.png'
           }}
         />
       </MapView>

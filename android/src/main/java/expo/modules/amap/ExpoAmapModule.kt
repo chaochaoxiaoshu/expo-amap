@@ -1,7 +1,13 @@
 package expo.modules.amap
 
+import android.Manifest
 import android.content.Context
+import android.content.pm.PackageManager
+import androidx.core.content.ContextCompat
+import com.amap.api.location.AMapLocation
 import com.amap.api.location.AMapLocationClient
+import com.amap.api.location.AMapLocationClientOption
+import com.amap.api.location.AMapLocationListener
 import com.amap.api.maps.MapsInitializer
 import com.amap.api.services.core.ServiceSettings
 import expo.modules.amap.models.CustomStyle
@@ -26,7 +32,8 @@ class ExpoAmapModule : Module() {
     get() = appContext.reactContext ?: throw Exceptions.ReactContextLost()
 
   private lateinit var searchManager: SearchManager
-  private lateinit var locationManager: LocationManager
+
+  private lateinit var locationClient: AMapLocationClient
 
   override fun definition() = ModuleDefinition {
     Name("ExpoAmap")
@@ -41,30 +48,83 @@ class ExpoAmapModule : Module() {
       AMapLocationClient.updatePrivacyAgree(context, true)
 
       searchManager = SearchManager(context)
-      android.util.Log.d("ExpoAmapModule", "正在初始化LocationManager")
-      locationManager = LocationManager(context)
-      android.util.Log.d("ExpoAmapModule", "ExpoAmapModule初始化完成")
+
+      locationClient = AMapLocationClient(context)
+      val option =
+              AMapLocationClientOption().apply {
+                locationMode = AMapLocationClientOption.AMapLocationMode.Hight_Accuracy
+                isOnceLocation = true
+                isNeedAddress = true
+                isGpsFirst = false
+              }
+      locationClient.setLocationOption(option)
     }
 
     AsyncFunction("requestLocation") { promise: Promise ->
-      android.util.Log.d("ExpoAmapModule", "requestLocation AsyncFunction被调用")
-      promise.resolve(mapOf(
-        "latitude" to 39.9042,
-        "longitude" to 116.4074,
-        "regeocode" to mapOf(
-          "formattedAddress" to "测试地址",
-          "country" to "中国",
-          "province" to "北京市",
-          "city" to "北京市",
-          "district" to "朝阳区",
-          "citycode" to "010",
-          "adcode" to "110105",
-          "street" to "测试街道",
-          "number" to "1号",
-          "poiName" to "测试POI",
-          "aoiName" to "测试AOI"
-        )
-      ))
+      // 权限检查：需要粗/细定位任一被授予
+      val fineGranted = ContextCompat.checkSelfPermission(
+          context,
+          Manifest.permission.ACCESS_FINE_LOCATION
+          ) == PackageManager.PERMISSION_GRANTED
+      val coarseGranted =
+          ContextCompat.checkSelfPermission(
+              context,
+              Manifest.permission.ACCESS_COARSE_LOCATION
+          ) == PackageManager.PERMISSION_GRANTED
+      if (!fineGranted && !coarseGranted) {
+        promise.reject("LOCATION_PERMISSION_DENIED", "定位权限未授权，请先授予定位权限后重试", null)
+        return@AsyncFunction
+      }
+
+      // 定义一个单次定位监听器
+      val listener =
+          object : AMapLocationListener {
+            var called = false // 保证 promise 只调用一次
+
+            override fun onLocationChanged(location: AMapLocation?) {
+              if (called) return
+              called = true
+
+              // 停止定位并移除 listener
+              locationClient.stopLocation()
+              locationClient.setLocationListener(null)
+
+              if (location != null) {
+                // 返回 JS 可用的定位信息
+                promise.resolve(
+                        mapOf(
+                                "latitude" to location.latitude,
+                                "longitude" to location.longitude,
+                                "regeocode" to
+                                        mapOf(
+                                                "formattedAddress" to location.address,
+                                                "country" to location.country,
+                                                "province" to location.province,
+                                                "city" to location.city,
+                                                "district" to location.district,
+                                                "citycode" to location.cityCode,
+                                                "adcode" to location.adCode,
+                                                "street" to location.street,
+                                                "number" to location.streetNum,
+                                                "poiName" to location.poiName,
+                                                "aoiName" to location.aoiName
+                                        ),
+                        )
+                )
+              } else {
+                promise.reject("LOCATION_ERROR", "获取定位失败", null)
+              }
+            }
+          }
+
+      // 设置 listener 并启动定位
+      locationClient.setLocationListener(listener)
+      try {
+        locationClient.startLocation()
+      } catch (e: Exception) {
+        locationClient.setLocationListener(null)
+        promise.reject("LOCATION_EXCEPTION", "启动定位失败: ${e.message}", e)
+      }
     }
 
     AsyncFunction("searchInputTips") { options: SearchInputTipsOptions, promise: Promise ->
@@ -96,27 +156,13 @@ class ExpoAmapModule : Module() {
     }
 
     View(ExpoAmapView::class) {
-      Events("onLoad", "onZoom", "onRegionChanged", "onTapMarker")
+      Events("onLoad", "onZoom", "onRegionChanged", "onTapMarker", "onTapPolyline")
 
-      Prop("region") { view, region: Region ->
-        view.setRegion(region)
-      }
+      Prop("initialRegion") { view, region: Region -> view.setInitialRegion(region) }
 
-      Prop("initialRegion") { view, region: Region ->
-        if (view.regionSetted) {
-          return@Prop
-        }
-        view.setRegion(region)
-        view.regionSetted = true
-      }
+      Prop("limitedRegion") { view, region: Region -> view.setLimitedRegion(region) }
 
-      Prop("limitedRegion") { view, region: Region ->
-        view.setLimitedRegion(region)
-      }
-
-      Prop("mapType") { view, mapType: Int ->
-        view.mapView.map?.mapType = mapType
-      }
+      Prop("mapType") { view, mapType: Int -> view.mapView.map?.mapType = mapType }
 
       Prop("showCompass") { view, showCompass: Boolean ->
         view.mapView.map?.uiSettings?.isCompassEnabled = showCompass
@@ -130,21 +176,13 @@ class ExpoAmapModule : Module() {
         view.setUserTrackingMode(userTrackingMode)
       }
 
-      Prop("markers") { view, markers: Array<Marker> ->
-        view.setMarkers(markers)
-      }
+      Prop("markers") { view, markers: Array<Marker> -> view.setMarkers(markers) }
 
-      Prop("polylines") { view, polylines: Array<Polyline> ->
-        view.setPolylines(polylines)
-      }
+      Prop("polylines") { view, polylines: Array<Polyline> -> view.setPolylines(polylines) }
 
-      Prop("customStyle") { view, customStyle: CustomStyle ->
-        view.setCustomStyle(customStyle)
-      }
+      Prop("customStyle") { view, customStyle: CustomStyle -> view.setCustomStyle(customStyle) }
 
-      Prop("language") { view, language: String ->
-        view.setLanguage(language)
-      }
+      Prop("language") { view, language: String -> view.setLanguage(language) }
 
       Prop("minZoomLevel") { view, minZoomLevel: Double ->
         view.mapView.map?.minZoomLevel = minZoomLevel.toFloat()
@@ -159,7 +197,9 @@ class ExpoAmapModule : Module() {
       }
 
       AsyncFunction("setCenter") {
-        view: ExpoAmapView, centerCoordinate: Map<String, Double>, promise: Promise ->
+              view: ExpoAmapView,
+              centerCoordinate: Map<String, Double>,
+              promise: Promise ->
         view.setCenter(centerCoordinate, promise)
       }
 

@@ -1,7 +1,9 @@
 package expo.modules.amap
 
+import android.app.Activity
 import android.content.Context
 import com.amap.api.maps.AMap
+import com.amap.api.maps.model.BitmapDescriptorFactory
 import com.amap.api.maps.model.LatLng
 import com.amap.api.maps.model.Polyline
 import com.amap.api.maps.model.PolylineOptions
@@ -42,8 +44,22 @@ class PolylineManager(private val map: AMap, private val context: Context) {
                 3 -> options.lineCapType(PolylineOptions.LineCapType.LineCapRound)
             }
 
-            val polyline = map.addPolyline(options)
-            this.polylines.add(polyline)
+            val texture = data.style.textureImage
+            if (texture != null) {
+                ImageLoader.from(texture) { bitmap ->
+                    if (bitmap != null) {
+                        options.setCustomTexture(
+                            BitmapDescriptorFactory.fromBitmap(bitmap)
+                        )
+                    }
+                    // 注意：纹理加载完再 addPolyline，保证纹理生效
+                    val polyline = map.addPolyline(options)
+                    this.polylines.add(polyline)
+                }
+            } else {
+                val polyline = map.addPolyline(options)
+                this.polylines.add(polyline)
+            }
         }
     }
 }

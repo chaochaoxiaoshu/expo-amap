@@ -47,7 +47,8 @@ export interface AMapPath {
   distance: number
   duration: number
   stepCount: number
-  polyline?: string
+  polyline?: Coordinate[]
+  [key: string]: any
 }
 
 /**

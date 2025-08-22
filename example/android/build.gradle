@@ -40,5 +40,5 @@ apply plugin: "expo-root-project"
 apply plugin: "com.facebook.react.rootproject"
 
 project.ext.react = [
-    nodeExecutableAndArgs: [project.findProperty("NODE_BINARY") ?: "node"]
+  nodeExecutableAndArgs: ["/Users/chaoxiaoshu/.nvm/versions/node/v22.12.0/bin/node"]
 ]
