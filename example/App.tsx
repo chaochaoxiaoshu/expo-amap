@@ -1,4 +1,4 @@
-import { useRef } from 'react'
+import { useRef, useState } from 'react'
 import { View, Button } from 'react-native'
 import ExpoAmapModule, {
   MapView,
@@ -51,50 +51,6 @@ const examplePoints = [
     city: '太原市',
     district: '万柏林区',
     coordinate: { latitude: 37.876592, longitude: 112.492825 }
-  }
-] satisfies {
-  id: string
-  city: string
-  district: string
-  coordinate: { latitude: number; longitude: number }
-}[]
-
-const examplePoints2 = [
-  {
-    id: '7',
-    city: '太原市',
-    district: '晋源区',
-    coordinate: { latitude: 37.786966, longitude: 112.513013 }
-  },
-  {
-    id: '8',
-    city: '太原市',
-    district: '晋源区',
-    coordinate: { latitude: 37.786107, longitude: 112.529844 }
-  },
-  {
-    id: '9',
-    city: '太原市',
-    district: '晋源区',
-    coordinate: { latitude: 37.77422, longitude: 112.501958 }
-  },
-  {
-    id: '10',
-    city: '太原市',
-    district: '迎泽区',
-    coordinate: { latitude: 37.853557, longitude: 112.561243 }
-  },
-  {
-    id: '11',
-    city: '太原市',
-    district: '迎泽区',
-    coordinate: { latitude: 37.860537, longitude: 112.588152 }
-  },
-  {
-    id: '12',
-    city: '太原市',
-    district: '迎泽区',
-    coordinate: { latitude: 37.870497, longitude: 112.551922 }
   }
 ] satisfies {
   id: string
@@ -201,7 +157,6 @@ async function handleSearchTransitRoute() {
 }
 
 export default function App() {
-  const testRef = useRef<View>(null)
   const mapViewRef = useRef<MapViewRef>(null)
 
   const handleTapMarker = (event: { nativeEvent: OnTapMarkerEventPayload }) => {
@@ -232,6 +187,7 @@ export default function App() {
           ]
         }}
         onTapMarker={handleTapMarker}
+        onTapPolyline={(e) => console.log(e.nativeEvent)}
       >
         {examplePoints.map((point) => (
           <Marker
@@ -254,10 +210,21 @@ export default function App() {
           />
         ))}
         <Polyline
+          id='p1'
           coordinates={pathArr}
           style={{
-            strokeColor: '#5981D8',
-            lineWidth: 4
+            fillColor: '#5981D8',
+            strokeColor: '#2A56B4',
+            lineWidth: 12
+          }}
+        />
+        <Polyline
+          id='p2'
+          coordinates={pathArr}
+          style={{
+            lineWidth: 8,
+            textureImage:
+              'https://qiniu.zdjt.com/shop/2025-08-21/dbb897dc6899adf24bafa6a902cb61a9.png'
           }}
         />
       </MapView>

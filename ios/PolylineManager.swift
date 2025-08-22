@@ -2,7 +2,7 @@ import MAMapKit
 
 class PolylineManager {
     private weak var mapView: MAMapView?
-    private var polylines: [MAPolyline] = []
+    var polylines: [MAPolyline] = []
     private var styles: [String: PolylineStyle] = [:]
 
     init(mapView: MAMapView) {
@@ -23,11 +23,10 @@ class PolylineManager {
 
             let polyline: MAPolyline = MAPolyline(
                 coordinates: &coordsArray, count: UInt(coordsArray.count))
-            let polylineId = "polyline-\(index)"
-            polyline.title = polylineId
+            polyline.title = item.id
 
             self.polylines.append(polyline)
-            styles[polylineId] = item.style
+            styles[item.id] = item.style
             mapView.add(polyline)
         }
     }

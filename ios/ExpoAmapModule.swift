@@ -107,7 +107,7 @@ public class ExpoAmapModule: Module {
         }
 
         View(MapView.self) {
-            Events("onLoad", "onZoom", "onRegionChanged", "onTapMarker")
+            Events("onLoad", "onZoom", "onRegionChanged", "onTapMarker", "onTapPolyline")
 
             Prop("initialRegion") { (view, region: Region) in
                 view.setInitialRegion(region)

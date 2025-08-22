@@ -120,6 +120,7 @@ export interface PolylineStyle {
  * 折线线段
  */
 export interface PolylineData {
+  id: string
   /**
    * 折线坐标点数组
    */
@@ -300,6 +301,10 @@ export interface OnTapMarkerEventPayload {
   coordinate: Coordinate
 }
 
+export interface OnTapPolylineEventPayload {
+  coordinate: Coordinate
+}
+
 export interface MapViewRef {
   /**
    * 设置地图中心点
@@ -418,4 +423,5 @@ export interface MapViewProps extends ViewProps {
     nativeEvent: OnRegionChangedEventPayload
   }) => void
   onTapMarker?: (event: { nativeEvent: OnTapMarkerEventPayload }) => void
+  onTapPolyline?: (event: { nativeEvent: OnTapPolylineEventPayload }) => void
 }

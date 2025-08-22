@@ -18,6 +18,7 @@ class MapView: ExpoView {
     private let onZoom = EventDispatcher()
     private let onRegionChanged = EventDispatcher()
     private let onTapMarker = EventDispatcher()
+    private let onTapPolyline = EventDispatcher()
 
     private let setCenterHandler = PromiseDelegateHandler<Void>()
 
@@ -341,6 +342,8 @@ extension MapView: MAMapViewDelegate {
         if overlay is MAPolyline {
             let renderer: MAPolylineRenderer = MAPolylineRenderer(overlay: overlay)
             renderer.userInteractionEnabled = true
+            renderer.hitTestInset = -10
+            
             if let style = polylineManager.styleForPolyline(overlay as! MAPolyline) {
                 if let fillColor = style.fillColor {
                     renderer.fillColor = UIColor(hex: fillColor)
@@ -395,6 +398,20 @@ extension MapView: MAMapViewDelegate {
             return renderer
         }
         return nil
+    }
+
+    // 点击地图时，检测是否命中 Polyline
+    func mapView(_ mapView: MAMapView!, didSingleTappedAt coordinate: CLLocationCoordinate2D) {
+        if let hits = mapView.getHittedPolylines(with: coordinate, traverseAll: false), let renderer = (hits.first as? MAPolylineRenderer), let polyline = renderer.overlay as? MAPolyline {
+            onTapPolyline([
+                "id": polyline.title ?? "",
+                "coordinate": [
+                    "latitude": polyline.coordinate.latitude,
+                    "longitude": polyline.coordinate.longitude
+                ],
+            ])
+            return
+        }
     }
 
     func mapView(_ mapView: MAMapView!, mapDidZoomByUser wasUserAction: Bool) {

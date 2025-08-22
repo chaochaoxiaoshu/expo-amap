@@ -40,6 +40,7 @@ struct PolylineStyle: Record {
 }
 
 struct Polyline: Record {
+    @Field var id: String
     @Field var coordinates: [Coordinate]
     @Field var style: PolylineStyle
 }
