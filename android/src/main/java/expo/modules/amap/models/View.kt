@@ -37,6 +37,7 @@ class PolylineStyle: Record {
 }
 
 class Polyline: Record {
+    @Field var id: String = ""
     @Field var coordinates: Array<Coordinate> = arrayOf()
     @Field var style: PolylineStyle = PolylineStyle()
 }

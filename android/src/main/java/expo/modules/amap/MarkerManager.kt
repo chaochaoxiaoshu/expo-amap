@@ -108,6 +108,9 @@ class MarkerManager(private val map: AMap, private val context: Context) {
 
             val marker = map.addMarker(options)
             if (marker != null) {
+                try {
+                    marker.setObject(data.id)
+                } catch (_: Exception) {}
                 normalMarkers.add(NormalMarker(marker, data.style))
             }
         }

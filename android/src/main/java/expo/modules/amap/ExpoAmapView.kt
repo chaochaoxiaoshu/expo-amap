@@ -23,181 +23,234 @@ import expo.modules.kotlin.views.ExpoView
 
 class ExpoAmapView(context: Context, appContext: AppContext) : ExpoView(context, appContext) {
 
-  private var polylineManager: PolylineManager
-  private var markerManager: MarkerManager
+    private var polylineManager: PolylineManager
+    private var markerManager: MarkerManager
 
-  val mapView =
-          MapView(context).apply {
+    val mapView =
+        MapView(context).apply {
             layoutParams = LayoutParams(LayoutParams.MATCH_PARENT, LayoutParams.MATCH_PARENT)
-          }
+        }
 
-  var regionToSet: Region? = null
+    var regionToSet: Region? = null
 
-  private val onLoad by EventDispatcher()
-  private val onZoom by EventDispatcher()
-  private val onRegionChanged by EventDispatcher()
+    private val onLoad by EventDispatcher()
+    private val onZoom by EventDispatcher()
+    private val onRegionChanged by EventDispatcher()
+    private val onTapMarker by EventDispatcher()
+    private val onTapPolyline by EventDispatcher()
 
-  init {
-    addView(mapView)
-    mapView.onCreate(null)
-    mapView.onResume()
-    polylineManager = PolylineManager(mapView.map, context)
-    markerManager = MarkerManager(mapView.map, context)
-    setListeners()
+    init {
+        addView(mapView)
+        mapView.onCreate(null)
+        mapView.onResume()
+        polylineManager = PolylineManager(mapView.map, context)
+        markerManager = MarkerManager(mapView.map, context)
+        setListeners()
 
-    mapView.map?.let { amap -> regionToSet?.let { region -> setRegion(region) } }
-  }
-
-  private fun setListeners() {
-    val activity = appContext.currentActivity
-    if (activity is LifecycleOwner) {
-      val lifecycleOwner = activity as LifecycleOwner
-      lifecycleOwner.lifecycle.addObserver(
-              object : DefaultLifecycleObserver {
-                override fun onResume(owner: LifecycleOwner) {
-                  mapView.onResume()
-                }
-                override fun onPause(owner: LifecycleOwner) {
-                  mapView.onPause()
-                }
-                override fun onDestroy(owner: LifecycleOwner) {
-                  mapView.onDestroy()
-                }
-              }
-      )
+        mapView.map?.let { amap -> regionToSet?.let { region -> setRegion(region) } }
     }
 
-    mapView.map?.setOnCameraChangeListener(
+    private fun setListeners() {
+        val activity = appContext.currentActivity
+        if (activity is LifecycleOwner) {
+            val lifecycleOwner = activity as LifecycleOwner
+            lifecycleOwner.lifecycle.addObserver(
+                object : DefaultLifecycleObserver {
+                    override fun onResume(owner: LifecycleOwner) {
+                        mapView.onResume()
+                    }
+
+                    override fun onPause(owner: LifecycleOwner) {
+                        mapView.onPause()
+                    }
+
+                    override fun onDestroy(owner: LifecycleOwner) {
+                        mapView.onDestroy()
+                    }
+                }
+            )
+        }
+
+        mapView.map?.setOnCameraChangeListener(
             object : AMap.OnCameraChangeListener {
-              override fun onCameraChange(p0: CameraPosition?) {}
-              override fun onCameraChangeFinish(p0: CameraPosition?) {
-                onZoom(mapOf("zoomLevel" to (p0?.zoom ?: 0)))
-                //  onRegionChanged(Utils.mapCameraPositionToRegion(p0))
-                p0?.zoom?.let { markerManager.switchMarkersVisibility(it) }
-              }
+                override fun onCameraChange(p0: CameraPosition?) {}
+                override fun onCameraChangeFinish(p0: CameraPosition?) {
+                    onZoom(mapOf("zoomLevel" to (p0?.zoom ?: 0)))
+                    //  onRegionChanged(Utils.mapCameraPositionToRegion(p0))
+                    p0?.zoom?.let { markerManager.switchMarkersVisibility(it) }
+                }
             }
-    )
-    mapView.map?.setOnMapLoadedListener {
-      onLoad(
-              mapOf(
-                      "message" to "Map loaded successfully",
-                      "timestamp" to System.currentTimeMillis(),
-              )
-      )
-      regionToSet?.let { setRegion(it) }
+        )
+        mapView.map?.setOnMapLoadedListener {
+            onLoad(
+                mapOf(
+                    "message" to "Map loaded successfully",
+                    "timestamp" to System.currentTimeMillis(),
+                )
+            )
+            regionToSet?.let { setRegion(it) }
+        }
+        // 标记点击
+        mapView.map?.setOnMarkerClickListener { marker ->
+            try {
+                val id =
+                    try {
+                        marker.`object` as? String
+                    } catch (_: Exception) {
+                        null
+                    }
+                val pos = marker.position
+                if (id != null && pos != null) {
+                    val screenPoint = mapView.map?.projection?.toScreenLocation(pos)
+                    onTapMarker(
+                        mapOf(
+                            "id" to id,
+                            "point" to
+                                    mapOf(
+                                        "x" to (screenPoint?.x?.toDouble() ?: 0.0),
+                                        "y" to (screenPoint?.y?.toDouble() ?: 0.0)
+                                    ),
+                            "coordinate" to
+                                    mapOf(
+                                        "latitude" to pos.latitude,
+                                        "longitude" to pos.longitude
+                                    )
+                        )
+                    )
+                }
+            } catch (_: Exception) {
+            }
+            false
+        }
+        // 折线点击
+        mapView.map?.setOnPolylineClickListener { polyline ->
+            try {
+                val id = polylineManager.getIdFor(polyline)
+                val coord = polyline.points?.firstOrNull()
+                if (id != null && coord != null) {
+                    onTapPolyline(
+                        mapOf(
+                            "id" to id,
+                            "coordinate" to
+                                    mapOf(
+                                        "latitude" to coord.latitude,
+                                        "longitude" to coord.longitude
+                                    )
+                        )
+                    )
+                }
+            } catch (_: Exception) {
+            }
+        }
     }
-    //    mapView.map?.setOnMarkerClickListener { marker ->
-    //
-    //    }
-  }
 
-  fun setInitialRegion(region: Region) {
-    if (regionToSet != null) {
-      return
-    }
-    regionToSet = region
-    mapView.map?.let { _ -> setRegion(region) }
-  }
-
-  private fun setRegion(region: Region) {
-    val amap = mapView.map ?: return
-    val bounds = regionToLatLngBounds(region)
-    amap.moveCamera(CameraUpdateFactory.newLatLngBounds(bounds, 0))
-  }
-
-  private fun regionToLatLngBounds(region: Region): LatLngBounds {
-    val centerLat = region.center.latitude
-    val centerLng = region.center.longitude
-
-    val halfLatDelta = region.span.latitudeDelta / 2
-    val halfLngDelta = region.span.longitudeDelta / 2
-
-    val southLat = centerLat - halfLatDelta
-    val northLat = centerLat + halfLatDelta
-    val westLng = centerLng - halfLngDelta
-    val eastLng = centerLng + halfLngDelta
-
-    val southWest = LatLng(southLat, westLng)
-    val northEast = LatLng(northLat, eastLng)
-
-    return LatLngBounds(southWest, northEast)
-  }
-
-  fun setLimitedRegion(region: Region) {
-    mapView.map?.setMapStatusLimits(regionToLatLngBounds(region))
-  }
-
-  fun setUserTrackingMode(mode: Int) {
-    val style = MyLocationStyle()
-
-    when (mode) {
-      0 -> style.myLocationType(MyLocationStyle.LOCATION_TYPE_SHOW)
-      1 -> style.myLocationType(MyLocationStyle.LOCATION_TYPE_FOLLOW)
-      2 -> style.myLocationType(MyLocationStyle.LOCATION_TYPE_LOCATION_ROTATE_NO_CENTER)
-      else -> style.myLocationType(MyLocationStyle.LOCATION_TYPE_FOLLOW)
+    fun setInitialRegion(region: Region) {
+        if (regionToSet != null) {
+            return
+        }
+        regionToSet = region
+        mapView.map?.let { _ -> setRegion(region) }
     }
 
-    mapView.map?.myLocationStyle = style
-  }
-
-  fun setMarkers(markers: Array<Marker>) {
-    markerManager.setMarkers(markers)
-  }
-
-  fun setPolylines(polylines: Array<Polyline>) {
-    polylineManager.setPolyLines(polylines)
-  }
-
-  fun setCustomStyle(style: CustomStyle) {
-    val amap = mapView.map ?: return
-
-    try {
-      if (style.enabled) {
-        val options = CustomMapStyleOptions()
-
-        style.styleData?.let { data -> options.styleData = data }
-        style.styleExtraData?.let { extra -> options.styleExtraData = extra }
-
-        amap.setCustomMapStyle(options)
-      } else {
-        amap.setCustomMapStyle(null)
-      }
-    } catch (e: Exception) {
-      e.printStackTrace()
+    private fun setRegion(region: Region) {
+        val amap = mapView.map ?: return
+        val bounds = regionToLatLngBounds(region)
+        amap.moveCamera(CameraUpdateFactory.newLatLngBounds(bounds, 0))
     }
-  }
 
-  fun setLanguage(language: String) {
-    when (language.lowercase()) {
-      "english" -> mapView.map?.setMapLanguage(AMap.ENGLISH)
-      "chinese" -> mapView.map?.setMapLanguage(AMap.CHINESE)
-      else -> mapView.map?.setMapLanguage(AMap.CHINESE)
+    private fun regionToLatLngBounds(region: Region): LatLngBounds {
+        val centerLat = region.center.latitude
+        val centerLng = region.center.longitude
+
+        val halfLatDelta = region.span.latitudeDelta / 2
+        val halfLngDelta = region.span.longitudeDelta / 2
+
+        val southLat = centerLat - halfLatDelta
+        val northLat = centerLat + halfLatDelta
+        val westLng = centerLng - halfLngDelta
+        val eastLng = centerLng + halfLngDelta
+
+        val southWest = LatLng(southLat, westLng)
+        val northEast = LatLng(northLat, eastLng)
+
+        return LatLngBounds(southWest, northEast)
     }
-  }
 
-  fun setRegionClusteringOptions(options: RegionClusteringOptions) {
-    markerManager.updateRegionClusteringOptions(options)
-  }
-
-  fun setCenter(centerCoordinate: Map<String, Double>, promise: Promise) {
-    try {
-      val lat = centerCoordinate["latitude"] ?: 0.0
-      val lng = centerCoordinate["longitude"] ?: 0.0
-      val latLng = LatLng(lat, lng)
-      mapView.map?.moveCamera(CameraUpdateFactory.changeLatLng(latLng))
-      promise.resolve(null)
-    } catch (e: Exception) {
-      promise.reject("SET_CENTER_ERROR", e.message, e)
+    fun setLimitedRegion(region: Region) {
+        mapView.map?.setMapStatusLimits(regionToLatLngBounds(region))
     }
-  }
 
-  fun setZoomLevel(zoomLevel: Int, promise: Promise) {
-    try {
-      val zoom = zoomLevel.toFloat()
-      mapView.map?.moveCamera(CameraUpdateFactory.zoomTo(zoom))
-      promise.resolve(null)
-    } catch (e: Exception) {
-      promise.reject("SET_ZOOM_ERROR", e.message, e)
+    fun setUserTrackingMode(mode: Int) {
+        val style = MyLocationStyle()
+
+        when (mode) {
+            0 -> style.myLocationType(MyLocationStyle.LOCATION_TYPE_SHOW)
+            1 -> style.myLocationType(MyLocationStyle.LOCATION_TYPE_FOLLOW)
+            2 -> style.myLocationType(MyLocationStyle.LOCATION_TYPE_LOCATION_ROTATE_NO_CENTER)
+            else -> style.myLocationType(MyLocationStyle.LOCATION_TYPE_FOLLOW)
+        }
+
+        mapView.map?.myLocationStyle = style
     }
-  }
+
+    fun setMarkers(markers: Array<Marker>) {
+        markerManager.setMarkers(markers)
+    }
+
+    fun setPolylines(polylines: Array<Polyline>) {
+        polylineManager.setPolyLines(polylines)
+    }
+
+    fun setCustomStyle(style: CustomStyle) {
+        val amap = mapView.map ?: return
+
+        try {
+            if (style.enabled) {
+                val options = CustomMapStyleOptions()
+
+                style.styleData?.let { data -> options.styleData = data }
+                style.styleExtraData?.let { extra -> options.styleExtraData = extra }
+
+                amap.setCustomMapStyle(options)
+            } else {
+                amap.setCustomMapStyle(null)
+            }
+        } catch (e: Exception) {
+            e.printStackTrace()
+        }
+    }
+
+    fun setLanguage(language: String) {
+        when (language.lowercase()) {
+            "english" -> mapView.map?.setMapLanguage(AMap.ENGLISH)
+            "chinese" -> mapView.map?.setMapLanguage(AMap.CHINESE)
+            else -> mapView.map?.setMapLanguage(AMap.CHINESE)
+        }
+    }
+
+    fun setRegionClusteringOptions(options: RegionClusteringOptions) {
+        markerManager.updateRegionClusteringOptions(options)
+    }
+
+    fun setCenter(centerCoordinate: Map<String, Double>, promise: Promise) {
+        try {
+            val lat = centerCoordinate["latitude"] ?: 0.0
+            val lng = centerCoordinate["longitude"] ?: 0.0
+            val latLng = LatLng(lat, lng)
+            mapView.map?.moveCamera(CameraUpdateFactory.changeLatLng(latLng))
+            promise.resolve(null)
+        } catch (e: Exception) {
+            promise.reject("SET_CENTER_ERROR", e.message, e)
+        }
+    }
+
+    fun setZoomLevel(zoomLevel: Int, promise: Promise) {
+        try {
+            val zoom = zoomLevel.toFloat()
+            mapView.map?.moveCamera(CameraUpdateFactory.zoomTo(zoom))
+            promise.resolve(null)
+        } catch (e: Exception) {
+            promise.reject("SET_ZOOM_ERROR", e.message, e)
+        }
+    }
 }
