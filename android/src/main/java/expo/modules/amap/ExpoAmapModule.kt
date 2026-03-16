@@ -54,8 +54,10 @@ class ExpoAmapModule : Module() {
               AMapLocationClientOption().apply {
                 locationMode = AMapLocationClientOption.AMapLocationMode.Hight_Accuracy
                 isOnceLocation = true
+                isOnceLocationLatest = true
                 isNeedAddress = true
-                isGpsFirst = false
+                isGpsFirst = true
+                httpTimeOut = 20000
               }
       locationClient.setLocationOption(option)
     }
@@ -105,6 +107,7 @@ class ExpoAmapModule : Module() {
                           mapOf(
                                   "latitude" to location.latitude,
                                   "longitude" to location.longitude,
+                                  "accuracy" to location.accuracy,
                                   "regeocode" to
                                           mapOf(
                                                   "formattedAddress" to (location.address ?: ""),

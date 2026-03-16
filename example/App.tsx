@@ -80,8 +80,12 @@ async function getLocation() {
     console.warn('定位权限未授权')
     return
   }
-  const location = await ExpoAmapModule.requestLocation()
-  console.log('location', location)
+  try {
+    const location = await ExpoAmapModule.requestLocation()
+    console.log('location', location)
+  } catch (error) {
+    console.log(JSON.stringify(error))
+  }
 }
 
 async function handleSearchGeocode() {

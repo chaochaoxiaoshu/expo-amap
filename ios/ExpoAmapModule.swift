@@ -45,7 +45,7 @@ public class ExpoAmapModule: Module {
                     let errorMessage = error.localizedDescription
                     let apiKey = Bundle.main.object(forInfoDictionaryKey: "AMAP_API_KEY") as? String
                     let bundleId = Bundle.main.bundleIdentifier ?? "Unknown Bundle ID"
-                    promise.reject("ApiKey:\(apiKey); BundleId:\(bundleId); ErrorMessage:\(errorMessage)", "定位失败: \(errorMessage)")
+                    promise.reject("ApiKey:\(apiKey); BundleId:\(bundleId)", "")
                     return
                 }
                 guard let location = location, let regeocode = regeocode else {
