@@ -56,7 +56,6 @@ class ExpoAmapModule : Module() {
                 isOnceLocation = true
                 isOnceLocationLatest = true
                 isNeedAddress = true
-                isGpsFirst = true
                 httpTimeOut = 20000
               }
       locationClient.setLocationOption(option)

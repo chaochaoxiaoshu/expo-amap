@@ -26,9 +26,12 @@ public class ExpoAmapModule: Module {
             locationManager = AMapLocationManager()
             locationDelegate = LocationManagerDelegate()
             locationManager?.delegate = locationDelegate
-            locationManager?.desiredAccuracy = kCLLocationAccuracyHundredMeters
-            locationManager?.locationTimeout = 2
-            locationManager?.reGeocodeTimeout = 2
+            locationManager?.desiredAccuracy = kCLLocationAccuracyNearestTenMeters
+            locationManager?.locationTimeout = 10
+            locationManager?.reGeocodeTimeout = 5
+            locationManager?.locatingWithReGeocode = true
+            locationManager?.pausesLocationUpdatesAutomatically = false
+            locationManager?.distanceFilter = kCLDistanceFilterNone
 
             search = AMapSearchAPI()
             searchManager = SearchManager(search: search)
@@ -36,40 +39,48 @@ public class ExpoAmapModule: Module {
         }
 
         AsyncFunction("requestLocation") { (promise: Promise) -> Void in
-            guard let locationManager = locationManager else {
+            guard let locationManager = self.locationManager else {
                 promise.reject("E_LOCATION_MANAGER_NOT_FOUND", "定位管理器未初始化")
                 return
             }
+
             locationManager.requestLocation(withReGeocode: true) { location, regeocode, error in
                 if let error = error {
-                    let errorMessage = error.localizedDescription
-                    let apiKey = Bundle.main.object(forInfoDictionaryKey: "AMAP_API_KEY") as? String
-                    let bundleId = Bundle.main.bundleIdentifier ?? "Unknown Bundle ID"
-                    promise.reject("ApiKey:\(apiKey); BundleId:\(bundleId)", "")
-                    return
-                }
-                guard let location = location, let regeocode = regeocode else {
-                    promise.reject("location regeocode 为空", "定位失败")
+                    let nsError = error as NSError
+                    let errorCode = "LOCATION_ERROR_\(nsError.code)"
+                    let errorMessage = "定位失败: \(error.localizedDescription)"
+                    promise.reject(errorCode, errorMessage)
                     return
                 }
 
-                promise.resolve([
-                    "latitude": location.coordinate.latitude,
-                    "longitude": location.coordinate.longitude,
-                    "regeocode": [
-                        "formattedAddress": regeocode.formattedAddress,
-                        "country": regeocode.country,
-                        "province": regeocode.province,
-                        "city": regeocode.city,
-                        "district": regeocode.district,
-                        "citycode": regeocode.citycode,
-                        "adcode": regeocode.adcode,
-                        "street": regeocode.street,
-                        "number": regeocode.number,
-                        "poiName": regeocode.poiName,
-                        "aoiName": regeocode.aoiName,
-                    ],
-                ])
+                guard let location = location else {
+                    promise.reject("LOCATION_ERROR", "定位失败，location 为空")
+                    return
+                }
+
+                // 高德 AMapLocationManager 返回的坐标已经是 GCJ-02，无需手动转换
+                var result: [String: Any] = [:]
+                result["latitude"] = location.coordinate.latitude
+                result["longitude"] = location.coordinate.longitude
+                result["accuracy"] = location.horizontalAccuracy
+
+                if let regeocode = regeocode {
+                    var regeocodeDict: [String: String] = [:]
+                    regeocodeDict["formattedAddress"] = regeocode.formattedAddress ?? ""
+                    regeocodeDict["country"] = regeocode.country ?? ""
+                    regeocodeDict["province"] = regeocode.province ?? ""
+                    regeocodeDict["city"] = regeocode.city ?? ""
+                    regeocodeDict["district"] = regeocode.district ?? ""
+                    regeocodeDict["citycode"] = regeocode.citycode ?? ""
+                    regeocodeDict["adcode"] = regeocode.adcode ?? ""
+                    regeocodeDict["street"] = regeocode.street ?? ""
+                    regeocodeDict["number"] = regeocode.number ?? ""
+                    regeocodeDict["poiName"] = regeocode.poiName ?? ""
+                    regeocodeDict["aoiName"] = regeocode.aoiName ?? ""
+                    result["regeocode"] = regeocodeDict
+                }
+
+                promise.resolve(result)
             }
         }
 
