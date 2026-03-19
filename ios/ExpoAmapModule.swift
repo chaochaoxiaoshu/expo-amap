@@ -27,7 +27,7 @@ public class ExpoAmapModule: Module {
             locationDelegate = LocationManagerDelegate()
             locationManager?.delegate = locationDelegate
             locationManager?.desiredAccuracy = kCLLocationAccuracyNearestTenMeters
-            locationManager?.locationTimeout = 10
+            locationManager?.locationTimeout = 5
             locationManager?.reGeocodeTimeout = 5
             locationManager?.locatingWithReGeocode = true
             locationManager?.pausesLocationUpdatesAutomatically = false
@@ -63,6 +63,14 @@ public class ExpoAmapModule: Module {
                 result["latitude"] = location.coordinate.latitude
                 result["longitude"] = location.coordinate.longitude
                 result["accuracy"] = location.horizontalAccuracy
+                result["altitude"] = location.altitude
+                result["speed"] = location.speed
+                result["course"] = location.course
+                result["timestamp"] = location.timestamp.timeIntervalSince1970 * 1000
+                result["verticalAccuracy"] = location.verticalAccuracy
+                // iOS 不直接暴露 locationType 和 provider，添加占位符以保持一致性
+                result["locationType"] = 0 
+                result["provider"] = "iOS"
 
                 if let regeocode = regeocode {
                     var regeocodeDict: [String: String] = [:]

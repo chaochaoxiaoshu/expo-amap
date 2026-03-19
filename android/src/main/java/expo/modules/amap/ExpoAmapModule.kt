@@ -9,7 +9,12 @@ import com.amap.api.location.AMapLocationClient
 import com.amap.api.location.AMapLocationClientOption
 import com.amap.api.location.AMapLocationListener
 import com.amap.api.maps.MapsInitializer
+import com.amap.api.services.core.LatLonPoint
 import com.amap.api.services.core.ServiceSettings
+import com.amap.api.services.geocoder.GeocodeResult
+import com.amap.api.services.geocoder.GeocodeSearch
+import com.amap.api.services.geocoder.RegeocodeQuery
+import com.amap.api.services.geocoder.RegeocodeResult
 import expo.modules.amap.models.CustomStyle
 import expo.modules.amap.models.Marker
 import expo.modules.amap.models.Polyline
@@ -33,8 +38,6 @@ class ExpoAmapModule : Module() {
 
   private lateinit var searchManager: SearchManager
 
-  private lateinit var locationClient: AMapLocationClient
-
   override fun definition() = ModuleDefinition {
     Name("ExpoAmap")
 
@@ -48,17 +51,6 @@ class ExpoAmapModule : Module() {
       AMapLocationClient.updatePrivacyAgree(context, true)
 
       searchManager = SearchManager(context)
-
-      locationClient = AMapLocationClient(context)
-      val option =
-              AMapLocationClientOption().apply {
-                locationMode = AMapLocationClientOption.AMapLocationMode.Hight_Accuracy
-                isOnceLocation = true
-                isOnceLocationLatest = true
-                isNeedAddress = true
-                httpTimeOut = 20000
-              }
-      locationClient.setLocationOption(option)
     }
 
     AsyncFunction("requestLocation") { promise: Promise ->
@@ -77,9 +69,18 @@ class ExpoAmapModule : Module() {
         return@AsyncFunction
       }
 
-      // 停止之前可能存在的定位请求，避免并发问题
-      locationClient.stopLocation()
-      locationClient.setLocationListener(null)
+      val locationClient = AMapLocationClient(context)
+      val option = AMapLocationClientOption().apply {
+        locationMode = AMapLocationClientOption.AMapLocationMode.Hight_Accuracy
+        isOnceLocation = true
+        isOnceLocationLatest = false
+        isGpsFirst = true
+        gpsFirstTimeout = 5000
+        isNeedAddress = true
+        isLocationCacheEnable = true
+        httpTimeOut = 10000
+      }
+      locationClient.setLocationOption(option)
 
       // 定义一个单次定位监听器
       val listener =
@@ -94,35 +95,77 @@ class ExpoAmapModule : Module() {
               // 取消超时处理
               timeoutHandler?.removeCallbacksAndMessages(null)
 
-              // 停止定位并移除 listener
+              // 停止定位并销毁客户端
               locationClient.stopLocation()
-              locationClient.setLocationListener(null)
+              locationClient.onDestroy()
 
               if (location != null) {
                 // 检查定位是否成功
                 if (location.errorCode == 0) {
-                  // 定位成功，返回 JS 可用的定位信息
-                  promise.resolve(
-                          mapOf(
-                                  "latitude" to location.latitude,
-                                  "longitude" to location.longitude,
-                                  "accuracy" to location.accuracy,
-                                  "regeocode" to
-                                          mapOf(
-                                                  "formattedAddress" to (location.address ?: ""),
-                                                  "country" to (location.country ?: ""),
-                                                  "province" to (location.province ?: ""),
-                                                  "city" to (location.city ?: ""),
-                                                  "district" to (location.district ?: ""),
-                                                  "citycode" to (location.cityCode ?: ""),
-                                                  "adcode" to (location.adCode ?: ""),
-                                                  "street" to (location.street ?: ""),
-                                                  "number" to (location.streetNum ?: ""),
-                                                  "poiName" to (location.poiName ?: ""),
-                                                  "aoiName" to (location.aoiName ?: "")
-                                          ),
+                  // GPS定位成功但地址信息为空时，手动进行逆地理编码补全
+                  val addressEmpty = location.address.isNullOrEmpty()
+                  if (addressEmpty) {
+                    val point = LatLonPoint(location.latitude, location.longitude)
+                    val query = RegeocodeQuery(point, 1000f, GeocodeSearch.AMAP)
+                    val geocoder = GeocodeSearch(context)
+                    geocoder.setOnGeocodeSearchListener(
+                      object : GeocodeSearch.OnGeocodeSearchListener {
+                        override fun onGeocodeSearched(result: GeocodeResult?, rCode: Int) {}
+                        override fun onRegeocodeSearched(result: RegeocodeResult?, rCode: Int) {
+                          val regeo = result?.regeocodeAddress
+                          promise.resolve(
+                            mapOf(
+                              "latitude" to location.latitude,
+                              "longitude" to location.longitude,
+                              "accuracy" to location.accuracy,
+                              "locationType" to location.locationType,
+                              "provider" to (location.provider ?: ""),
+                              "regeocode" to
+                                mapOf(
+                                  "formattedAddress" to (regeo?.formatAddress ?: ""),
+                                  "country" to (regeo?.country ?: ""),
+                                  "province" to (regeo?.province ?: ""),
+                                  "city" to (regeo?.city ?: ""),
+                                  "district" to (regeo?.district ?: ""),
+                                  "citycode" to (regeo?.cityCode ?: ""),
+                                  "adcode" to (regeo?.adCode ?: ""),
+                                  "street" to (regeo?.roads?.firstOrNull()?.name ?: ""),
+                                  "number" to (regeo?.streetNumber?.number ?: ""),
+                                  "poiName" to (regeo?.pois?.firstOrNull()?.title ?: ""),
+                                  "aoiName" to (regeo?.aois?.firstOrNull()?.aoiName ?: "")
+                                ),
+                            )
                           )
-                  )
+                        }
+                      }
+                    )
+                    geocoder.getFromLocationAsyn(query)
+                  } else {
+                    // 定位成功且地址信息完整，直接返回
+                    promise.resolve(
+                            mapOf(
+                                    "latitude" to location.latitude,
+                                    "longitude" to location.longitude,
+                                    "accuracy" to location.accuracy,
+                                    "locationType" to location.locationType,
+                                    "provider" to (location.provider ?: ""),
+                                    "regeocode" to
+                                            mapOf(
+                                                    "formattedAddress" to (location.address ?: ""),
+                                                    "country" to (location.country ?: ""),
+                                                    "province" to (location.province ?: ""),
+                                                    "city" to (location.city ?: ""),
+                                                    "district" to (location.district ?: ""),
+                                                    "citycode" to (location.cityCode ?: ""),
+                                                    "adcode" to (location.adCode ?: ""),
+                                                    "street" to (location.street ?: ""),
+                                                    "number" to (location.streetNum ?: ""),
+                                                    "poiName" to (location.poiName ?: ""),
+                                                    "aoiName" to (location.aoiName ?: "")
+                                            ),
+                            )
+                    )
+                  }
                 } else {
                   // 定位失败，返回详细的错误信息
                   val errorMsg = when (location.errorCode) {
@@ -165,7 +208,7 @@ class ExpoAmapModule : Module() {
                 if (!called) {
                   called = true
                   locationClient.stopLocation()
-                  locationClient.setLocationListener(null)
+                  locationClient.onDestroy()
                   promise.reject("LOCATION_TIMEOUT", "定位请求超时，请检查网络或GPS状态", null)
                 }
               }, 30000) // 30秒超时
@@ -179,7 +222,8 @@ class ExpoAmapModule : Module() {
         // 启动超时计时器
         listener.setupTimeout()
       } catch (e: Exception) {
-        locationClient.setLocationListener(null)
+        locationClient.stopLocation()
+        locationClient.onDestroy()
         promise.reject("LOCATION_EXCEPTION", "启动定位失败: ${e.message}", e)
       }
     }
