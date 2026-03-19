@@ -112,7 +112,15 @@ class ExpoAmapModule : Module() {
                       object : GeocodeSearch.OnGeocodeSearchListener {
                         override fun onGeocodeSearched(result: GeocodeResult?, rCode: Int) {}
                         override fun onRegeocodeSearched(result: RegeocodeResult?, rCode: Int) {
+                          if (rCode != 1000) {
+                            promise.reject("REGEOCODE_ERROR_$rCode", "逆地理编码失败(rCode=$rCode), 请检查API Key是否正确配置且已启用搜索服务", null)
+                            return
+                          }
                           val regeo = result?.regeocodeAddress
+                          if (regeo == null || regeo.formatAddress.isNullOrBlank()) {
+                            promise.reject("REGEOCODE_EMPTY", "逆地理编码结果为空, 请检查API Key是否正确配置且已启用搜索服务", null)
+                            return
+                          }
                           promise.resolve(
                             mapOf(
                               "latitude" to location.latitude,
@@ -122,17 +130,17 @@ class ExpoAmapModule : Module() {
                               "provider" to (location.provider ?: ""),
                               "regeocode" to
                                 mapOf(
-                                  "formattedAddress" to (regeo?.formatAddress ?: ""),
-                                  "country" to (regeo?.country ?: ""),
-                                  "province" to (regeo?.province ?: ""),
-                                  "city" to (regeo?.city ?: ""),
-                                  "district" to (regeo?.district ?: ""),
-                                  "citycode" to (regeo?.cityCode ?: ""),
-                                  "adcode" to (regeo?.adCode ?: ""),
-                                  "street" to (regeo?.roads?.firstOrNull()?.name ?: ""),
-                                  "number" to (regeo?.streetNumber?.number ?: ""),
-                                  "poiName" to (regeo?.pois?.firstOrNull()?.title ?: ""),
-                                  "aoiName" to (regeo?.aois?.firstOrNull()?.aoiName ?: "")
+                                  "formattedAddress" to (regeo.formatAddress ?: ""),
+                                  "country" to (regeo.country ?: ""),
+                                  "province" to (regeo.province ?: ""),
+                                  "city" to (regeo.city ?: ""),
+                                  "district" to (regeo.district ?: ""),
+                                  "citycode" to (regeo.cityCode ?: ""),
+                                  "adcode" to (regeo.adCode ?: ""),
+                                  "street" to (regeo.roads?.firstOrNull()?.name ?: ""),
+                                  "number" to (regeo.streetNumber?.number ?: ""),
+                                  "poiName" to (regeo.pois?.firstOrNull()?.title ?: ""),
+                                  "aoiName" to (regeo.aois?.firstOrNull()?.aoiName ?: "")
                                 ),
                             )
                           )
@@ -140,6 +148,9 @@ class ExpoAmapModule : Module() {
                       }
                     )
                     geocoder.getFromLocationAsyn(query)
+                  } else if (location.address.isNullOrBlank()) {
+                    // 定位SDK返回了结果但地址为空
+                    promise.reject("REGEOCODE_EMPTY", "定位成功但逆地理编码结果为空, 请检查API Key是否正确配置且已启用搜索服务", null)
                   } else {
                     // 定位成功且地址信息完整，直接返回
                     promise.resolve(
