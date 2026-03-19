@@ -103,7 +103,7 @@ class ExpoAmapModule : Module() {
                 // 检查定位是否成功
                 if (location.errorCode == 0) {
                   // GPS定位成功但地址信息为空时，手动进行逆地理编码补全
-                  val addressEmpty = location.address.isNullOrEmpty()
+                  val addressEmpty = location.address.isNullOrBlank()
                   if (addressEmpty) {
                     val point = LatLonPoint(location.latitude, location.longitude)
                     val query = RegeocodeQuery(point, 1000f, GeocodeSearch.AMAP)
